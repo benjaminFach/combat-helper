@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx playwright *)",
+      "Read(//home/node/.cache/ms-playwright/**)",
+      "Bash(npm run *)",
+      "Bash(DEBUG=pw:webserver npm run test:e2e)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:3101/api/characters)",
+      "Bash(echo \"curl exit: $?\")",
+      "Bash(xargs -r kill -9)",
+      "Bash(awk '{print $2, $11, $12}')",
+      "Bash(npm test *)",
+      "Bash(npx vitest *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3001/api/characters)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:5173)"
+    ]
+  }
+}

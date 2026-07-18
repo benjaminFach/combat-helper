@@ -1,0 +1,20 @@
+# System Instructions & Project Constraints
+
+## Core Identity
+Expert full-stack engineering. Clean, maintainable, modular code. Strict TDD.
+
+## Technology Stack
+- **Frontend:** Vue 3 (Composition API, `<script setup>`), Vite, Tailwind CSS.
+- **Backend:** Node.js, Express.
+- **Database:** `better-sqlite3` (strictly local `party.db` file).
+- **Testing:** Vitest (frontend components and backend logic).
+
+## Architectural Directives
+1. **Zero-Cloud / Local-Only:** localhost only. No auth, CORS constraints, or external API calls.
+2. **Single-Screen UI:** Single-page dashboard fitting 5 complex characters on 1080p. No deep routing/pagination.
+3. **Monorepo Structure:** `/client` (Vue), `/server` (Express + SQLite), root `package.json` with concurrent startup scripts.
+
+## Development Methodology (Strict TDD)
+- Vitest suites against an in-memory database (`:memory:`) before finalizing data access methods.
+- Seed tests with complex, real-world D&D mechanics (e.g., Level 10 Artificer with mixed spell slots and infusions; Paladin with a large Lay on Hands pool).
+- Step-by-step: complete and get approval for each layer (Schema -> API -> UI) before the next.

@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/*
+ * Party Ledger theme — "war-room ledger at candlelight".
+ * Local-only app: no webfont CDNs (Zero-Cloud), so the display face is a
+ * deliberate ui-serif stack and the numbers lean on tabular figures.
+ * Category hue = information: violet is always spellcasting, amber is always
+ * a class feature, green is always a pool, sky is always a consumable.
+ */
+@theme {
+  --color-ink: #14151c;        /* page: blue-black, not neutral black */
+  --color-card: #1d1f29;
+  --color-edge: #2e3140;
+  --color-parchment: #e8e2d4;  /* primary text, warm */
+  --color-faded: #8f8a7c;      /* secondary text */
+  --color-arcane: #a78bfa;     /* spell slots */
+  --color-ember: #f5b453;      /* class features */
+  --color-vitality: #4ade80;   /* pools (healing, HP) */
+  --color-tonic: #7dd3fc;      /* consumables */
+  --color-blood: #f87171;      /* low HP */
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+body {
+  @apply bg-ink text-parchment antialiased;
+}

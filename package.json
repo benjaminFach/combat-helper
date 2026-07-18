@@ -1,0 +1,23 @@
+{
+  "name": "party-tracker",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-only D&D party resource tracking dashboard",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev --workspace server\" \"npm run dev --workspace client\"",
+    "test": "npm run test --workspace server && npm run test --workspace client",
+    "seed": "npm run seed --workspace server",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "concurrently": "^9.1.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true
+  }
+}
