@@ -1,0 +1,123 @@
+{
+  "source": {
+    "workspace": "Benjamin Fach’s Notion",
+    "page": "Ostyria Compendium",
+    "url": "https://app.notion.com/p/Ostyria-Compendium-2b8a1bf4e36080c3837cfe1c67bd76c9",
+    "pulledAt": "2026-07-18"
+  },
+  "playerCharacters": [
+    { "id": "2bba1bf4e36080afb6eae8545f31b772", "name": "Orlin Greymane", "characterClass": "Artificer" },
+    { "id": "2bba1bf4e3608012a4bdeeb0c67aa2cd", "name": "Uppya Beauty", "characterClass": "Cleric" },
+    { "id": "2bba1bf4e3608074998af3434837880d", "name": "Kit Sofia", "characterClass": "Cleric" },
+    { "id": "2bba1bf4e36080f8abe7e06eba087121", "name": "Lobos", "characterClass": "Blood Hunter" },
+    { "id": "2bba1bf4e36080a5878dc0438bba8ecb", "name": "Malachai", "characterClass": "Monk" }
+  ],
+  "npcs": [
+    { "id": "2bca1bf4e360809e8546ce74299781b8", "name": null, "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608068ba51eeeaa897fba8", "name": "? General", "briefDescription": "trying to unify tribes in the west", "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e360803abd6af0cf8b59033c", "name": "?Tabaxi?", "briefDescription": null, "roleInFaction": null, "factions": ["Odysseus’ Herald"], "regions": [], "religions": [] },
+    { "id": "2bca1bf4e3608015b203cf89fbf55f2b", "name": "Aberrant", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608054bc8afa02a962954d", "name": "Amani", "briefDescription": "Sprung forth from , located in", "roleInFaction": null, "factions": [], "regions": ["Duankh"], "religions": [] },
+    { "id": "2baa1bf4e36080c2bc85d449c36e1589", "name": "Arcane Knight", "briefDescription": null, "roleInFaction": null, "factions": ["Order of the Platinum Dragon"], "regions": ["Duankh"], "religions": ["Platinum Dragon"] },
+    { "id": "2baa1bf4e36080de9b76e937c872ad7b", "name": "Cartho Mohan", "briefDescription": null, "roleInFaction": "Cardinal", "factions": ["Order of the Platinum Dragon"], "regions": [], "religions": ["Platinum Dragon"] },
+    { "id": "2baa1bf4e360805899bfd04a7fa964f9", "name": "Chieftan Oleami", "briefDescription": null, "roleInFaction": null, "factions": ["Druidic Enclave"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608080b74fdec2259b4642", "name": "Cortar Duscart", "briefDescription": null, "roleInFaction": null, "factions": ["Order of the White Lotus"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608075a5ddc3fc185604d8", "name": "Demir", "briefDescription": "man who killed Lobos", "roleInFaction": null, "factions": ["Dark Council"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080978391e5a99d7b0a1f", "name": "Fosa En’coola", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080d29338ed887a196aea", "name": "Grandmaster Brium", "briefDescription": null, "roleInFaction": "Leader", "factions": ["Harmony Monastery"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080ee8e04dfee5c433617", "name": "Green Knight", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608008864cf9ffe74b89fb", "name": "Haldir", "briefDescription": "A death monk", "roleInFaction": "Under-leader", "factions": ["Dark Council"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608095b290f1f389a25579", "name": "High Priestess Gorishi", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": ["The Starbride"] },
+    { "id": "2baa1bf4e360803eb5c4f572e901d7d7", "name": "Kavanoth", "briefDescription": null, "roleInFaction": null, "factions": ["Odysseus’ Herald"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e360801293ecd23b26b7896c", "name": "Lahala Duscart", "briefDescription": "A pink-skinned Fendali with red hair and bat-like wings", "roleInFaction": null, "factions": ["Order of the White Lotus"], "regions": ["Duankh"], "religions": [] },
+    { "id": "2baa1bf4e36080b49d33d2f079fd8729", "name": "Lorprax Kuu’Ambeth", "briefDescription": "Silver dragon", "roleInFaction": null, "factions": ["Odysseus’ Herald"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e360805cab46c5351d140a2d", "name": "Luna", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608077a55af1e81c1c17f3", "name": "Lyrus", "briefDescription": null, "roleInFaction": "Spymaster", "factions": ["Order of the White Lotus"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e360804392c8c7c48d319371", "name": "Manu", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2bca1bf4e360805c8829ca04f53e0449", "name": "Marrow Queen", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080dabed6ed445d5d7ec7", "name": "Merchant King", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080cb8138f5e61602262e", "name": "Platinum Dragon Inquisitors", "briefDescription": null, "roleInFaction": null, "factions": ["Order of the Platinum Dragon"], "regions": ["Duankh"], "religions": ["Platinum Dragon"] },
+    { "id": "2baa1bf4e36080f5928ce122906a371b", "name": "Platinum Dragon Marshalls", "briefDescription": null, "roleInFaction": null, "factions": ["Order of the Platinum Dragon"], "regions": ["Duankh"], "religions": ["Platinum Dragon"] },
+    { "id": "2baa1bf4e3608016936eeb45c3d87206", "name": "Shadewalker", "briefDescription": "aka Rhenlat", "roleInFaction": "Under-leader", "factions": ["Dark Council"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080618bcbd826d857b9e4", "name": "Shopah Shi’leza", "briefDescription": "Power hungry, sought to siphon a Phoenix", "roleInFaction": "Under-leader", "factions": ["Dark Council"], "regions": ["Duankh"], "religions": [] },
+    { "id": "2baa1bf4e3608031a633dd5409e810a5", "name": "Sodi Manstol", "briefDescription": null, "roleInFaction": null, "factions": ["Dark Council"], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080ea9620c572d8ac395e", "name": "Sola", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e36080c39d3dd3eac60e3861", "name": "The Whisper", "briefDescription": null, "roleInFaction": null, "factions": [], "regions": [], "religions": [] },
+    { "id": "2baa1bf4e3608097aa5bdf4d4ccc6d53", "name": "Vesamir", "briefDescription": "Malachai’s old master", "roleInFaction": null, "factions": [], "regions": [], "religions": ["God King"] }
+  ],
+  "factions": [
+    { "id": "2baa1bf4e3608052bb5cc2be9e65ba37", "name": "Black Mambas", "leader": null, "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": ["Citadel"], "npcs": [], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2bca1bf4e360804f9058f19a7d63afd4", "name": "Dark Council", "leader": null, "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": ["Citadel", "Abandoned Wizard’s Tower", "Ember’s Village", "Gebora", "Devil’s Pit"], "npcs": ["Shadewalker", "Shopah Shi’leza", "Haldir", "Sodi Manstol", "Demir"], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e36080e69074ffec3dc6b07a", "name": "Druidic Enclave", "leader": "Chieftan Oleami", "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": ["Gebora"], "npcs": ["Chieftan Oleami"], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2bca1bf4e36080cbba48daf4dfbf7134", "name": "Harmony Monastery", "leader": "Grandmaster Brium", "motivation": null, "reputation": null, "regions": [], "locations": [], "npcs": ["Grandmaster Brium"], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e3608041b3e1d1455dbac65d", "name": "Nomadic Order", "leader": null, "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": [], "npcs": [], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2bca1bf4e36080549be9d6336a47c8bc", "name": "Odysseus’ Herald", "leader": null, "motivation": "Revive the Storm Giants wiped out during the Planar Convergence", "reputation": null, "regions": ["Duankh"], "locations": [], "npcs": ["Kavanoth", "Lorprax Kuu’Ambeth", "?Tabaxi?"], "magicTechCreatureAssociations": "Thunder, lightning", "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e3608020bfaacd06a6a9b003", "name": "Order of the Platinum Dragon", "leader": null, "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": ["Citadel"], "npcs": ["Arcane Knight", "Platinum Dragon Marshalls", "Platinum Dragon Inquisitors", "Cartho Mohan"], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e36080f795f4e86d20394dbd", "name": "Order of the White Lotus", "leader": "Lahala Duscart", "motivation": "Save Philae from the Dark Council", "reputation": "Positive", "regions": ["Duankh"], "locations": ["Citadel", "The Nest"], "npcs": ["Lahala Duscart", "Lyrus", "Cortar Duscart"], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e360801691dcfe0d75ce6de4", "name": "Parliament", "leader": null, "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": [], "npcs": [], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e36080989977f7735ceb48c3", "name": "Purgers", "leader": null, "motivation": "Trying to free their land of the fiends that run it and have control", "reputation": null, "regions": ["Lanfe"], "locations": [], "npcs": [], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null },
+    { "id": "2baa1bf4e360807089e0ce805c115436", "name": "Thieves’ Guild", "leader": null, "motivation": null, "reputation": null, "regions": ["Duankh"], "locations": ["Citadel"], "npcs": [], "magicTechCreatureAssociations": null, "symbolsColorsClothing": null }
+  ],
+  "events": [
+    { "id": "2baa1bf4e360809f9ad7f0dd42c6b9a2", "name": "Aberrant Raids", "historical": false, "factions": [], "npcs": ["Aberrant", "Amani"] },
+    { "id": "2baa1bf4e360808f84d6ce99a89b31a2", "name": "Anti-magic dome enclosure of citadel", "historical": false, "factions": ["Order of the Platinum Dragon"], "npcs": ["Cartho Mohan"] },
+    { "id": "2baa1bf4e360808b9957f796d85a9e6c", "name": "Attempted deposing of Citadel’s King", "historical": false, "factions": [], "npcs": [] },
+    { "id": "2bca1bf4e3608004a603da07efdffe08", "name": "Defeating of the Giants", "historical": true, "factions": [], "npcs": [] },
+    { "id": "2bca1bf4e36080c685fec0c9a489bcb9", "name": "Dragon Strife", "historical": false, "factions": ["Odysseus’ Herald"], "npcs": [] },
+    { "id": "2baa1bf4e36080d7bc63c37956b2bb03", "name": "Monastic Accords", "historical": false, "factions": [], "npcs": ["Grandmaster Brium"] },
+    { "id": "2baa1bf4e360803b931ddda51bc60804", "name": "Monastic Tournament", "historical": false, "factions": [], "npcs": [] },
+    { "id": "2baa1bf4e36080a4be6cf516051c6ce3", "name": "Murder of nobleman in citadel noble district", "historical": false, "factions": [], "npcs": [] },
+    { "id": "2bca1bf4e360800ca525ffeecedbfd2f", "name": "Order of the Platinum Dragon Takeover of Citadel", "historical": false, "factions": ["Order of the Platinum Dragon"], "npcs": ["Arcane Knight", "Platinum Dragon Marshalls", "Platinum Dragon Inquisitors", "Lahala Duscart"] },
+    { "id": "2baa1bf4e360805686bacceb5d55e08c", "name": "Planar Convergence", "historical": true, "factions": [], "npcs": [] },
+    { "id": "2baa1bf4e360800095a0c0d7f68c66cd", "name": "Sealing of the Divine Seal", "historical": true, "factions": [], "npcs": [] },
+    { "id": "2baa1bf4e360806792c3c686b50b4237", "name": "Siphoning of the Grandmasters", "historical": false, "factions": ["Dark Council", "Nomadic Order"], "npcs": ["Haldir", "Shadewalker"] },
+    { "id": "2baa1bf4e36080dbabd8eba5a6618719", "name": "Siphoning of the Phoenix", "historical": false, "factions": ["Dark Council", "Nomadic Order"], "npcs": ["Shopah Shi’leza"] },
+    { "id": "2baa1bf4e36080458753ebed029b3b2f", "name": "The Cycle War", "historical": false, "factions": [], "npcs": [] },
+    { "id": "2baa1bf4e36080cba82dfca0fda5d06f", "name": "War for the Marrow Throne", "historical": false, "factions": [], "npcs": ["Kavanoth", "Marrow Queen"] },
+    { "id": "2baa1bf4e360807c8839fe2d1f83e64d", "name": "War in Kuu’lan", "historical": false, "factions": [], "npcs": [] }
+  ],
+  "locations": [
+    { "id": "2baa1bf4e360801aafbbfbcc49211eda", "name": "Abandoned Wizard’s Tower", "type": null, "nation": "Phillae", "briefDescription": null },
+    { "id": "2baa1bf4e3608060a0daf7ff4a8c77d6", "name": "Citadel", "type": "City", "nation": "Phillae", "briefDescription": null },
+    { "id": "2baa1bf4e360803797caf407e326766d", "name": "Devil’s Pit", "type": null, "nation": null, "briefDescription": "A hellscape of fire, volcanoes, and unstable rifts" },
+    { "id": "2baa1bf4e36080b998d9d5488ab719f5", "name": "Ember’s Village", "type": null, "nation": null, "briefDescription": null },
+    { "id": "2baa1bf4e36080c6a5d1edf1805e604d", "name": "Gebora", "type": "Forest", "nation": "Phillae", "briefDescription": "A large forest, given as a gift by the fairies" },
+    { "id": "2bca1bf4e360809f96a1e4cd4927a2eb", "name": "Iris Temple", "type": null, "nation": "Phillae", "briefDescription": "Home of magic in . Teleported out as a defense mechanism during the ." },
+    { "id": "2baa1bf4e360808bbf70f8f8fc0540d7", "name": "Pathfinder’s Cove", "type": "City", "nation": "Phillae", "briefDescription": "At the end of King’s Road out of Citadel" },
+    { "id": "2baa1bf4e360808691c9fb6894f591df", "name": "Plainsland", "type": "Plains", "nation": "Phillae", "briefDescription": "Outside of the city of Citadel" },
+    { "id": "2bca1bf4e36080859ee7e0adcb22ef47", "name": "Que’terra", "type": "City", "nation": null, "briefDescription": "Offshoot of King’s Road, towards the water" },
+    { "id": "2bca1bf4e3608078b3e4d941a3bab231", "name": "Requiem’s Embrace", "type": "Temple", "nation": "Phillae", "briefDescription": "Death Monk Monastery" },
+    { "id": "2bca1bf4e36080a4a929e71da746fc78", "name": "The Chasm", "type": null, "nation": "Phillae", "briefDescription": null },
+    { "id": "2bca1bf4e36080b9acf3e41366317706", "name": "The Divine Seal", "type": null, "nation": null, "briefDescription": "A mysterious force" },
+    { "id": "2baa1bf4e36080c68d9fe5e1370c7f43", "name": "The Nest", "type": "Compound", "nation": null, "briefDescription": null }
+  ],
+  "sessions": [
+    { "id": "2bba1bf4e36080dfbf16fe9d3814d600", "name": "Session Two", "sessionDate": "2025-11-01", "factions": ["Order of the White Lotus", "Order of the Platinum Dragon", "Thieves’ Guild", "Black Mambas", "Odysseus’ Herald"], "npcs": ["Lahala Duscart", "Arcane Knight", "Platinum Dragon Inquisitors", "Platinum Dragon Marshalls"], "playerCharacters": ["Lobos", "Uppya Beauty", "Kit Sofia", "Orlin Greymane", "Malachai"] },
+    { "id": "2bba1bf4e36080ecb38ee53cdcf23d58", "name": "Session One", "sessionDate": "2025-09-06", "factions": ["Order of the White Lotus", "Order of the Platinum Dragon"], "npcs": ["Lahala Duscart"], "playerCharacters": ["Orlin Greymane", "Uppya Beauty", "Kit Sofia", "Lobos", "Malachai"] },
+    { "id": "2bca1bf4e360800cbfd5dad5c3b23595", "name": "Part One", "sessionDate": null, "factions": ["Dark Council", "Druidic Enclave", "Nomadic Order", "Parliament", "Odysseus’ Herald", "Order of the White Lotus", "Harmony Monastery"], "npcs": [], "playerCharacters": [] }
+  ],
+  "regions": [
+    { "id": "2baa1bf4e36080e1bb8cc756301164f7", "name": "Duankh" },
+    { "id": "2baa1bf4e3608059b485f4c918552ad8", "name": "Iya" },
+    { "id": "2baa1bf4e3608062834ac96bf942bcb7", "name": "Lanfe" },
+    { "id": "2baa1bf4e36080a6b248caf1e2952de1", "name": "Zoan" }
+  ],
+  "nations": [
+    { "id": "2baa1bf4e36080f68445e9e239bf618f", "name": "Apeti", "continent": "Duankh" },
+    { "id": "2baa1bf4e36080e9a7a2c09040e5386e", "name": "Heh’n Empire", "continent": "Duankh" },
+    { "id": "2baa1bf4e360801f90acfbd77507e702", "name": "Kala-Kau", "continent": "Duankh" },
+    { "id": "2baa1bf4e36080bcb045d45312869b58", "name": "Kuu’lan", "continent": "Duankh" },
+    { "id": "2baa1bf4e360800c95b8c84fcb1dc640", "name": "Phillae", "continent": "Duankh" },
+    { "id": "2baa1bf4e360801f961bde383091529b", "name": "Shuphyr", "continent": "Duankh" },
+    { "id": "2baa1bf4e360801b97a5e3c8f98fa322", "name": "Waikusa", "continent": "Duankh" }
+  ],
+  "religions": [
+    { "id": "2bba1bf4e36080c5ba65fc8fc9742ef6", "name": "God King", "type": "Prime", "description": "God of Order, Justice. An “old school” God", "symbols": null, "templeLocations": [] },
+    { "id": "2baa1bf4e3608091af7ada899be96cfe", "name": "Pathfinder", "type": "Prime", "description": null, "symbols": null, "templeLocations": ["Pathfinder’s Cove"] },
+    { "id": "2bba1bf4e36080929880fb510014b633", "name": "Platinum Dragon", "type": "Eclipsed", "description": "Arose from the depths of the world forged from platinum to put an end to the reign of the Scaled Tyrant.", "symbols": "Depicted on armor and banners as a marvelous dragon made of platinum that climbs atop a pillar shining bright", "templeLocations": ["Citadel"] },
+    { "id": "2bca1bf4e36080db8e28c0bfc07e76f5", "name": "The Scaled Tyrant", "type": null, "description": null, "symbols": null, "templeLocations": [] },
+    { "id": "2bba1bf4e360802d882ae69d518911c8", "name": "The Reveler", "type": null, "description": null, "symbols": null, "templeLocations": [] },
+    { "id": "2bba1bf4e36080fbb3cfd6bfd67ecb90", "name": "The Starbride", "type": null, "description": null, "symbols": null, "templeLocations": ["Citadel"] },
+    { "id": "2bca1bf4e360809988cfd9c476ed6883", "name": "The World Serpent", "type": "Eclipsed", "description": "Sided with the Betrayer to destroy Ostyria.", "symbols": null, "templeLocations": [] }
+  ]
+}

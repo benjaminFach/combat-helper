@@ -20,6 +20,15 @@
  * - Hit dice live on the character, not in character_resources: they are a
  *   per-character pool that several items/features draw from (Bloodshed
  *   Greatsword, Bloodsmelt Plate), not a resource owned by any one feature.
+ * - Playbooks are curated decision-support content, one per character:
+ *   a role line, a "default turn" script, an ordered decision ladder, and a
+ *   signature-ability shortlist. Brevity limits are enforced here, not by
+ *   convention: `priority BETWEEN 1 AND 4` + UNIQUE caps the ladder at 4
+ *   rules, `slot BETWEEN 1 AND 3` + UNIQUE caps signatures at 3.
+ * - `playbook_rules.resource_name` optionally names a resource_definitions
+ *   row so the UI can dim/hide a rule when that resource is spent. It is a
+ *   loose name reference (not an FK) because gating is advisory, and seed
+ *   tests verify the names resolve for each owner.
  */
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS characters (
@@ -66,4 +75,33 @@ CREATE TABLE IF NOT EXISTS character_resources (
 
 CREATE INDEX IF NOT EXISTS idx_character_resources_character
   ON character_resources (character_id);
+
+CREATE TABLE IF NOT EXISTS character_playbooks (
+  id             INTEGER PRIMARY KEY,
+  character_id   INTEGER NOT NULL UNIQUE REFERENCES characters(id) ON DELETE CASCADE,
+  role_name      TEXT    NOT NULL,
+  role_text      TEXT    NOT NULL,
+  default_action TEXT    NOT NULL,
+  default_bonus  TEXT    NOT NULL DEFAULT '',
+  default_move   TEXT    NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS playbook_rules (
+  id             INTEGER PRIMARY KEY,
+  playbook_id    INTEGER NOT NULL REFERENCES character_playbooks(id) ON DELETE CASCADE,
+  priority       INTEGER NOT NULL CHECK (priority BETWEEN 1 AND 4),
+  condition_text TEXT    NOT NULL,
+  action_text    TEXT    NOT NULL,
+  resource_name  TEXT,
+  UNIQUE (playbook_id, priority)
+);
+
+CREATE TABLE IF NOT EXISTS playbook_signatures (
+  id          INTEGER PRIMARY KEY,
+  playbook_id INTEGER NOT NULL REFERENCES character_playbooks(id) ON DELETE CASCADE,
+  slot        INTEGER NOT NULL CHECK (slot BETWEEN 1 AND 3),
+  name        TEXT    NOT NULL,
+  why_text    TEXT    NOT NULL,
+  UNIQUE (playbook_id, slot)
+);
 `;

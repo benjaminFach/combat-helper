@@ -31,7 +31,7 @@
  * to a full 10/10 hit dice pool (max_hit_dice = level).
  */
 export function seedParty(repos) {
-  const { characters, resourceDefinitions, characterResources } = repos;
+  const { characters, resourceDefinitions, characterResources, playbooks } = repos;
 
   // --- Resource definitions (shared vocabulary) ---
   // The two Channel Divinity variants differ in description and reset
@@ -365,6 +365,268 @@ export function seedParty(repos) {
     [defs.alertInitiativeSwap, 0], // max 0 = at-will, nothing to spend
     [defs.healingPotion, 10, { current_value: 0 }],
   ]);
+
+  // --- Playbooks (decision-support content) ---
+  // One card of judgment per character: role, a default turn that is always
+  // correct enough, a short if/then ladder read top-down (first match wins),
+  // and a 3-ability shortlist. resource_name ties a rule to an owned resource
+  // so the UI can dim it when the tank is empty.
+  playbooks.upsertForCharacter(uppyCharacter.id, {
+    role_name: 'Anchor',
+    role_text:
+      "You keep the party standing — your aura and concentration are the plan. Damage is not your job.",
+    default_action: "Sacred Flame the party's focused target",
+    default_bonus: 'Healing Word an injured ally if anyone is below half',
+    default_move: 'Stay central so everyone is inside your 30ft Sanctuary aura',
+    rules: [
+      {
+        priority: 1,
+        condition_text: 'Hard fight starting and Sanctuary is off',
+        action_text: 'Channel Divinity: Twilight Sanctuary — party-wide temp HP every round',
+        resource_name: 'Channel Divinity (Twilight)',
+      },
+      {
+        priority: 2,
+        condition_text: 'Ally down',
+        action_text: 'Healing Word from range — never spend your action walking over',
+      },
+      {
+        priority: 3,
+        condition_text: 'Boss or thick melee',
+        action_text: 'Cast Spirit Guardians, stand next to the enemy, and hold concentration',
+      },
+      {
+        priority: 4,
+        condition_text: 'Before initiative, ambush likely',
+        action_text: 'Vigilant Blessing: give Lobos advantage on initiative',
+        resource_name: 'Vigilant Blessing',
+      },
+    ],
+    signatures: [
+      {
+        slot: 1,
+        name: 'Twilight Sanctuary',
+        why_text: 'Temp HP for the whole party every round — opens every hard fight',
+      },
+      {
+        slot: 2,
+        name: 'Spirit Guardians',
+        why_text: 'Your best sustained damage; cast once, hug enemies, keep concentration',
+      },
+      {
+        slot: 3,
+        name: 'Healing Word',
+        why_text: 'Bonus-action pickup from 60ft — the only mid-fight heal worth an ally turn',
+      },
+    ],
+  });
+
+  playbooks.upsertForCharacter(kitCharacter.id, {
+    role_name: 'Artillery',
+    role_text:
+      'You are burst damage — one huge maximized lightning strike per fight, then support.',
+    default_action: 'Toll the Dead the focused target',
+    default_bonus: 'Healing Word an injured ally if anyone is below half',
+    default_move: 'Hold mid-range; melee attackers eat your Wrath of the Storm reaction',
+    rules: [
+      {
+        priority: 1,
+        condition_text: '3+ enemies clustered',
+        action_text: 'Upcast Shatter + Channel Divinity: Destructive Wrath for maximum damage',
+        resource_name: 'Channel Divinity (Tempest)',
+      },
+      {
+        priority: 2,
+        condition_text: 'Ally down',
+        action_text: 'Healing Word from range (bonus action)',
+      },
+      {
+        priority: 3,
+        condition_text: 'Boss fight',
+        action_text: 'Call Lightning, then re-strike every turn for one action',
+      },
+      {
+        priority: 4,
+        condition_text: 'Hit by a melee attack',
+        action_text: 'Reaction: Wrath of the Storm — lightning back at the attacker',
+        resource_name: 'Wrath of the Storm',
+      },
+    ],
+    signatures: [
+      {
+        slot: 1,
+        name: 'Shatter (upcast)',
+        why_text: 'Pair with Destructive Wrath for maximized burst — your signature move',
+      },
+      {
+        slot: 2,
+        name: 'Call Lightning',
+        why_text: 'Boss killer — one cast, then damage every single turn',
+      },
+      {
+        slot: 3,
+        name: 'Healing Word',
+        why_text: 'Bonus-action pickup from range; keeps your action free to attack',
+      },
+    ],
+  });
+
+  playbooks.upsertForCharacter(lobosCharacter.id, {
+    role_name: 'Front line',
+    role_text:
+      'You are the wall — pin the biggest threat and keep it hitting you instead of the casters.',
+    default_action: 'Attack twice with the Bloodshed Greatsword, Crimson Rite lit',
+    default_bonus: '—',
+    default_move: 'Engage the strongest enemy; stay between it and the back line',
+    rules: [
+      {
+        priority: 1,
+        condition_text: 'Real fight starting',
+        action_text: 'Bonus action: Hybrid Transformation, then light Crimson Rite',
+        resource_name: 'Hybrid Transformation',
+      },
+      {
+        priority: 2,
+        condition_text: 'Bloodied with hit dice left',
+        action_text: 'Activate Bloodsmelt Plate for temp HP',
+        resource_name: 'Bloodsmelt Plate Armor',
+      },
+      {
+        priority: 3,
+        condition_text: 'Enemy caster or skirmisher slipping away',
+        action_text: "Brand of Castigation on your next hit — it can't hide or teleport off",
+        resource_name: 'Brand of Castigation',
+      },
+      {
+        priority: 4,
+        condition_text: 'Enemy leaning on attack rolls',
+        action_text: 'Blood Maledict to curse their rolls',
+        resource_name: 'Blood Maledict',
+      },
+    ],
+    signatures: [
+      {
+        slot: 1,
+        name: 'Crimson Rite',
+        why_text: 'Free extra damage on every hit — it should be lit in every real fight',
+      },
+      {
+        slot: 2,
+        name: 'Hybrid Transformation',
+        why_text: 'Your power switch; below half HP you must roll to stay in control',
+      },
+      {
+        slot: 3,
+        name: 'Bloodshed Greatsword rune',
+        why_text: 'Burn a hit die for burst when a kill matters now',
+      },
+    ],
+  });
+
+  playbooks.upsertForCharacter(malachaiCharacter.id, {
+    role_name: 'Skirmisher',
+    role_text:
+      'You hunt the back line — dash past the front and shut down casters and archers.',
+    default_action: 'Attack twice',
+    default_bonus: 'Flurry of Blows on the same target',
+    default_move: 'Full speed to the most dangerous back-line enemy',
+    rules: [
+      {
+        priority: 1,
+        condition_text: 'Dangerous enemy about to act',
+        action_text:
+          'Stunning Strike your first hit (once per turn in 2024 rules) — even on a save they slow down and your next hit has advantage',
+      },
+      {
+        priority: 2,
+        condition_text: 'Swarmed in melee',
+        action_text: 'Molten Shell — temp HP that burns everyone who hits you',
+        resource_name: 'Molten Shell',
+      },
+      {
+        priority: 3,
+        condition_text: 'Crucial attack or save just failed',
+        action_text: 'Spend a Luck Point to reroll',
+        resource_name: 'Luck Point',
+      },
+      {
+        priority: 4,
+        condition_text: 'Party needs to reposition unseen',
+        action_text: 'Primordial Attunement: Pass Without Trace',
+        resource_name: 'Primordial Attunement - Pass Without Trace',
+      },
+    ],
+    signatures: [
+      {
+        slot: 1,
+        name: 'Stunning Strike',
+        why_text:
+          'Your fight-ender — a stunned boss loses its turn; once per turn, so lead with it',
+      },
+      {
+        slot: 2,
+        name: 'Flurry of Blows',
+        why_text: 'Default bonus action whenever you attacked this turn',
+      },
+      {
+        slot: 3,
+        name: 'Molten Shell',
+        why_text: 'Turns being surrounded into damage — pop it when enemies commit to you',
+      },
+    ],
+  });
+
+  playbooks.upsertForCharacter(orlinCharacter.id, {
+    role_name: 'Enabler',
+    role_text:
+      'You win fights with reactions and setup — Flash of Genius saves allies; your damage is a bonus.',
+    default_action: 'Attack the focused target',
+    default_bonus: '—',
+    default_move: 'Hold mid-range with line of sight to allies for Flash of Genius',
+    rules: [
+      {
+        priority: 1,
+        condition_text: 'Ally within 30ft about to fail a save',
+        action_text: 'Reaction: Flash of Genius (+5, optionally teleport them 15ft)',
+        resource_name: 'Flash of Genius',
+      },
+      {
+        priority: 2,
+        condition_text: 'Initiative just rolled, a key ally rolled low',
+        action_text: 'Alert: swap initiative with them',
+        resource_name: 'Alert - Initiative Swap',
+      },
+      {
+        priority: 3,
+        condition_text: "Ally down and you're closest",
+        action_text: 'Pour a Healing Potion',
+        resource_name: 'Healing Potions',
+      },
+      {
+        priority: 4,
+        condition_text: 'Crucial attack or save just failed',
+        action_text: 'Spend a Luck Point to reroll',
+        resource_name: 'Luck Point',
+      },
+    ],
+    signatures: [
+      {
+        slot: 1,
+        name: 'Flash of Genius',
+        why_text: "The party's save insurance — hold your reaction for it every round",
+      },
+      {
+        slot: 2,
+        name: 'Alert initiative swap',
+        why_text: 'Hand your high roll to whoever needs to act first — free, every fight',
+      },
+      {
+        slot: 3,
+        name: 'Luck Point',
+        why_text: 'Five rerolls a day — spend them, they vanish at the long rest',
+      },
+    ],
+  });
 
   return {
     definitions: defs,

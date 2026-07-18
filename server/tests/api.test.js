@@ -97,6 +97,42 @@ describe('GET /api/characters', () => {
     );
   });
 
+  it('assigns every character a combat role via their playbook', async () => {
+    const res = await request(app).get('/api/characters');
+    for (const c of res.body) {
+      expect(c.playbook, `${c.name} has no playbook`).toBeTruthy();
+      expect(c.playbook.role_name, `${c.name} has no role`).toBeTruthy();
+      expect(c.playbook.role_text, `${c.name} has no role description`).toBeTruthy();
+    }
+  });
+
+  it('covers the party composition with the expected role per character', async () => {
+    // Party has one heavy frontliner (Lobos), a mobile striker (Malachai),
+    // two clerics split into sustain vs burst, and a reaction-support
+    // artificer — the roles must reflect that split, not generic class labels.
+    const res = await request(app).get('/api/characters');
+    const roles = Object.fromEntries(res.body.map((c) => [c.name, c.playbook.role_name]));
+    expect(roles).toEqual({
+      'Uppy Beauty': 'Anchor',
+      'Kit Sofia': 'Artillery',
+      Lobos: 'Front line',
+      Malachai: 'Skirmisher',
+      Orlin: 'Enabler',
+    });
+    // Five distinct roles — nobody's job overlaps into someone else's.
+    expect(new Set(Object.values(roles)).size).toBe(5);
+  });
+
+  it('serializes the full playbook: default turn, ladder ordered by priority, signatures', async () => {
+    const res = await request(app).get('/api/characters');
+    const uppy = res.body.find((c) => c.name === 'Uppy Beauty');
+    expect(uppy.playbook.default_action).toBeTruthy();
+    expect(uppy.playbook.rules.map((r) => r.priority)).toEqual([1, 2, 3, 4]);
+    expect(uppy.playbook.rules[0].resource_name).toBe('Channel Divinity (Twilight)');
+    expect(uppy.playbook.signatures.length).toBeLessThanOrEqual(3);
+    expect(uppy.playbook.signatures.length).toBeGreaterThan(0);
+  });
+
   it('serializes full-caster slots with parsed metadata', async () => {
     const res = await request(app).get('/api/characters');
     const uppy = res.body.find((c) => c.name === 'Uppy Beauty');

@@ -18,13 +18,20 @@ afterEach(() => {
 });
 
 describe('migrations', () => {
-  it('creates all three tables', () => {
+  it('creates all six tables', () => {
     const tables = db
       .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
       .all()
       .map((r) => r.name)
       .sort();
-    expect(tables).toEqual(['character_resources', 'characters', 'resource_definitions']);
+    expect(tables).toEqual([
+      'character_playbooks',
+      'character_resources',
+      'characters',
+      'playbook_rules',
+      'playbook_signatures',
+      'resource_definitions',
+    ]);
   });
 
   it('is idempotent (safe to run twice)', () => {

@@ -67,6 +67,32 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe('CombatHudCard — combat role banner', () => {
+  const playbook = {
+    role_name: 'Anchor',
+    role_text: 'You keep the party standing — your aura and concentration are the plan.',
+    default_action: "Sacred Flame the party's focused target",
+    rules: [],
+    signatures: [],
+  };
+
+  it('shows the assigned combat role at the top of the card', () => {
+    const wrapper = mount(CombatHudCard, { props: { character: uppy({ playbook }) } });
+    const banner = wrapper.find('[data-testid="role-banner"]');
+    expect(banner.exists()).toBe(true);
+    expect(banner.text()).toContain('Anchor');
+    expect(banner.text()).toContain('You keep the party standing');
+    // Top of the card: the banner renders before the name header (<h2>).
+    const html = wrapper.html();
+    expect(html.indexOf('role-banner')).toBeLessThan(html.indexOf('<h2'));
+  });
+
+  it('renders no banner for a character without a playbook', () => {
+    const wrapper = mount(CombatHudCard, { props: { character: uppy({ playbook: null }) } });
+    expect(wrapper.find('[data-testid="role-banner"]').exists()).toBe(false);
+  });
+});
+
 describe('CombatHudCard — vitals mutations', () => {
   it('emits the optimistic value BEFORE the server responds, then the server row', async () => {
     const d = deferred();

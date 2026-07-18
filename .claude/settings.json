@@ -13,7 +13,11 @@
       "Bash(npx vitest *)",
       "Bash(node -e ' *)",
       "Bash(curl -s http://localhost:3001/api/characters)",
-      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:5173)"
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' http://localhost:5173)",
+      "mcp__notion__notion-search",
+      "mcp__notion__notion-fetch",
+      "mcp__notion__notion-query-data-sources",
+      "Bash(node -e \"const d=require\\('/workspaces/combat-helper/data/ostyria-compendium.json'\\); console.log\\(Object.entries\\(d\\).map\\(\\([k,v]\\)=>Array.isArray\\(v\\)?k+': '+v.length:k\\).join\\('\\\\n'\\)\\)\")"
     ]
   }
 }

@@ -58,6 +58,18 @@ async function setActive(resourceId, active) {
     class="flex min-w-0 flex-col rounded-lg border border-edge bg-card p-3 shadow-[0_1px_8px_rgba(0,0,0,0.35)]"
     :aria-label="`${character.name} combat status`"
   >
+    <!-- Combat role: the one sentence that survives week-to-week amnesia -->
+    <div
+      v-if="character.playbook"
+      data-testid="role-banner"
+      class="-mx-3 -mt-3 mb-2 rounded-t-lg border-b border-arcane/40 bg-arcane/10 px-3 py-1.5"
+    >
+      <span class="text-[10px] font-semibold uppercase tracking-[0.15em] text-arcane">{{
+        character.playbook.role_name
+      }}</span>
+      <p class="text-[11px] leading-snug text-faded">{{ character.playbook.role_text }}</p>
+    </div>
+
     <!-- Header: who + bloodied state at a glance -->
     <header class="flex items-baseline justify-between gap-2">
       <h2 class="min-w-0 break-words font-display text-xl leading-tight">{{ character.name }}</h2>

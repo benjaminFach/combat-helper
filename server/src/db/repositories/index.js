@@ -1,6 +1,7 @@
 import { createCharactersRepo } from './characters.js';
 import { createResourceDefinitionsRepo } from './resourceDefinitions.js';
 import { createCharacterResourcesRepo } from './characterResources.js';
+import { createPlaybooksRepo } from './playbooks.js';
 
 /** Bind all repositories to one db handle. Tests pass an in-memory db here. */
 export function createRepositories(db) {
@@ -8,5 +9,6 @@ export function createRepositories(db) {
     characters: createCharactersRepo(db),
     resourceDefinitions: createResourceDefinitionsRepo(db),
     characterResources: createCharacterResourcesRepo(db),
+    playbooks: createPlaybooksRepo(db),
   };
 }

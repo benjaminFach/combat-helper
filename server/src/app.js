@@ -23,6 +23,7 @@ export function createApp(repos) {
   const withResources = (character) => ({
     ...character,
     resources: repos.characterResources.listForCharacter(character.id),
+    playbook: repos.playbooks.getByCharacterId(character.id),
   });
 
   /** GET /api/characters — every character with nested resources + usage state. */
