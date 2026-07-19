@@ -17,7 +17,8 @@
       "mcp__notion__notion-search",
       "mcp__notion__notion-fetch",
       "mcp__notion__notion-query-data-sources",
-      "Bash(node -e \"const d=require\\('/workspaces/combat-helper/data/ostyria-compendium.json'\\); console.log\\(Object.entries\\(d\\).map\\(\\([k,v]\\)=>Array.isArray\\(v\\)?k+': '+v.length:k\\).join\\('\\\\n'\\)\\)\")"
+      "Bash(node -e \"const d=require\\('/workspaces/combat-helper/data/ostyria-compendium.json'\\); console.log\\(Object.entries\\(d\\).map\\(\\([k,v]\\)=>Array.isArray\\(v\\)?k+': '+v.length:k\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(python3 -)"
     ]
   }
 }

@@ -6,14 +6,20 @@ import { test, expect } from '@playwright/test';
  * survived the round trip and isn't just client state.
  *
  * The stack is re-seeded before every run (see playwright.config.js), so
- * Uppy Beauty always starts with 3 potions.
+ * Uppy Beauty always starts with 3 potions. The Combat HUD is the default
+ * view, so every fresh page load switches to the Ledger tab first.
  */
+async function openLedger(page) {
+  await page.getByTestId('tab-ledger').click();
+  await expect(page.getByRole('article', { name: 'Uppy Beauty', exact: true })).toBeVisible();
+}
+
 test.describe('Healing Potions counter', () => {
   test('[+] and [-] update the DOM and persist across reloads', async ({ page }) => {
     await page.goto('/');
+    await openLedger(page);
 
-    const uppy = page.getByRole('article', { name: 'Uppy Beauty' });
-    await expect(uppy).toBeVisible();
+    const uppy = page.getByRole('article', { name: 'Uppy Beauty', exact: true });
 
     // Exactly one consumable per card, so the testids are unambiguous within it.
     const counter = uppy.getByTestId('counter-value');
@@ -23,12 +29,14 @@ test.describe('Healing Potions counter', () => {
     await expect(counter).toHaveText('4');
 
     await page.reload();
+    await openLedger(page);
     await expect(uppy.getByTestId('counter-value')).toHaveText('4'); // persisted, not optimistic
 
     await uppy.getByTestId('counter-dec').click();
     await expect(uppy.getByTestId('counter-value')).toHaveText('3');
 
     await page.reload();
+    await openLedger(page);
     await expect(uppy.getByTestId('counter-value')).toHaveText('3');
   });
 
@@ -36,9 +44,10 @@ test.describe('Healing Potions counter', () => {
     page,
   }) => {
     await page.goto('/');
+    await openLedger(page);
 
-    const uppy = page.getByRole('article', { name: 'Uppy Beauty' });
-    const kit = page.getByRole('article', { name: 'Kit Sofia' });
+    const uppy = page.getByRole('article', { name: 'Uppy Beauty', exact: true });
+    const kit = page.getByRole('article', { name: 'Kit Sofia', exact: true });
 
     await uppy.getByTestId('counter-inc').click();
     await expect(uppy.getByTestId('counter-value')).toHaveText('4');

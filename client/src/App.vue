@@ -1,17 +1,29 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import CharacterCard from './components/CharacterCard.vue';
 import CombatHudCard from './components/CombatHudCard.vue';
+import TreasuryPanel from './components/TreasuryPanel.vue';
 import ManagementPanel from './components/ManagementPanel.vue';
-import { fetchCharacters, triggerRest } from './api.js';
+import { fetchCharacters, fetchLoot, fetchCurrency, triggerRest } from './api.js';
 
+// Combat HUD leads: it's the mid-session view, so it's first and the default.
 const TABS = [
-  { id: 'ledger', label: 'Ledger' },
   { id: 'hud', label: 'Combat HUD' },
+  { id: 'ledger', label: 'Ledger' },
+  { id: 'treasury', label: 'Treasury' },
 ];
-const activeTab = ref('ledger');
+const activeTab = ref('hud');
 
 const characters = ref([]);
+const loot = ref([]);
+const currency = ref({ platinum: 0, gold: 0, electrum: 0, silver: 0, copper: 0 });
+
+/**
+ * Treasury view state lives HERE, not in LootTable — tabs render with v-if,
+ * so component-local state would reset on every tab switch. App owns it for
+ * the same reason it owns `characters`: the view must survive unmounts.
+ */
+const lootView = reactive({ search: '', sortKey: 'name', sortDir: 'asc', page: 1, pageSize: 10 });
 const loading = ref(true);
 const loadError = ref(null);
 const resting = ref(false);
@@ -30,7 +42,11 @@ async function load() {
   loading.value = true;
   loadError.value = null;
   try {
-    characters.value = await fetchCharacters();
+    [characters.value, loot.value, currency.value] = await Promise.all([
+      fetchCharacters(),
+      fetchLoot(),
+      fetchCurrency(),
+    ]);
   } catch (err) {
     loadError.value = err.message;
   } finally {
@@ -54,6 +70,21 @@ function onResourceUpdated(row) {
 
 function onResourceError(message) {
   pushToast(message, 'error');
+}
+
+/* Treasury mutations: the panel talks to the API; App keeps the source of truth. */
+function onLootCreated(row) {
+  loot.value.push(row);
+}
+function onLootUpdated(row) {
+  const i = loot.value.findIndex((l) => l.id === row.id);
+  if (i !== -1) loot.value[i] = row;
+}
+function onLootRemoved(id) {
+  loot.value = loot.value.filter((l) => l.id !== id);
+}
+function onCurrencyUpdated(purse) {
+  currency.value = purse;
 }
 
 async function onRest(type) {
@@ -120,6 +151,20 @@ onMounted(load);
           Retry
         </button>
       </div>
+
+      <!-- Treasury doesn't need characters, so it sits above the empty-party guard. -->
+      <TreasuryPanel
+        v-else-if="activeTab === 'treasury'"
+        :loot="loot"
+        :currency="currency"
+        :characters="characters"
+        :view="lootView"
+        @loot-created="onLootCreated"
+        @loot-updated="onLootUpdated"
+        @loot-removed="onLootRemoved"
+        @currency-updated="onCurrencyUpdated"
+        @error="onResourceError"
+      />
 
       <p v-else-if="characters.length === 0" class="py-16 text-center text-sm text-faded">
         The ledger is empty — add characters to party.db to begin tracking.

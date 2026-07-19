@@ -51,6 +51,7 @@ test.describe('Ledger state survives tab switching', () => {
 
     try {
       await page.goto('/');
+      await page.getByTestId('tab-ledger').click(); // HUD is the default view
       await expect(filledPips(steps)).toHaveCount(4);
       await filledPips(steps).last().click();
       await filledPips(steps).last().click();
@@ -77,6 +78,7 @@ test.describe('Ledger state survives tab switching', () => {
 
     try {
       await page.goto('/');
+      await page.getByTestId('tab-ledger').click(); // HUD is the default view
       await delayRoute(page, '**/api/resources/*/usage', 1200);
 
       // Two spends, then switch tabs immediately — both responses still out.
@@ -109,6 +111,7 @@ test.describe('Multi-use resources stay available during requests', () => {
 
     try {
       await page.goto('/');
+      await page.getByTestId('tab-ledger').click(); // HUD is the default view
       await delayRoute(page, '**/api/resources/*/usage', 1200);
 
       await filledPips(wrath).last().click();
@@ -135,8 +138,7 @@ test.describe('Twilight Sanctuary activation does not lock the HUD card', () => 
     const cd = findResource(before, 'Channel Divinity (Twilight)');
 
     try {
-      await page.goto('/');
-      await page.getByTestId('tab-hud').click();
+      await page.goto('/'); // the HUD is the default view
       const uppy = page.getByRole('article', { name: 'Uppy Beauty combat status' });
       await expect(uppy).toBeVisible();
 

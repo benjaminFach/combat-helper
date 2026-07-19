@@ -31,7 +31,7 @@
  * to a full 10/10 hit dice pool (max_hit_dice = level).
  */
 export function seedParty(repos) {
-  const { characters, resourceDefinitions, characterResources, playbooks } = repos;
+  const { characters, resourceDefinitions, characterResources, playbooks, loot, currency } = repos;
 
   // --- Resource definitions (shared vocabulary) ---
   // The two Channel Divinity variants differ in description and reset
@@ -628,8 +628,36 @@ export function seedParty(repos) {
     ],
   });
 
+  /**
+   * Treasury: 15 entries so the loot table's default 10-per-page view has a
+   * second page out of the box. character_id null = held by the party pool.
+   * value_gp is the UNIT price; stacked consumables carry quantity > 1.
+   */
+  const lootRows = loot.createMany([
+    { name: 'Bag of Holding', description: 'Holds 500 lbs in an extradimensional space.', character_id: orlinCharacter.id, value_gp: 4000 },
+    { name: 'Pearl of Power', description: 'Regain one expended spell slot of level 3 or lower, once per dawn.', character_id: uppyCharacter.id, value_gp: 400 },
+    { name: 'Potion of Superior Healing', description: 'Regain 8d4 + 8 HP.', character_id: kitCharacter.id, value_gp: 450, quantity: 2 },
+    { name: 'Emerald of the Deep', description: 'A flawless emerald recovered from the drowned vault.', character_id: null, value_gp: 750 },
+    { name: 'Gold Pouch', description: 'Loose coin pooled from the last three jobs.', character_id: null, value_gp: 615 },
+    { name: 'Silvered Longsword', description: 'Counts as silvered for overcoming resistances.', character_id: lobosCharacter.id, value_gp: 100 },
+    { name: 'Cloak of Elvenkind', description: 'Advantage on Stealth; sight-based Perception against you has disadvantage.', character_id: malachaiCharacter.id, value_gp: 5000 },
+    { name: 'Scroll of Revivify', description: 'Cast Revivify without expending a slot; consumed on use.', character_id: uppyCharacter.id, value_gp: 300 },
+    { name: 'Dragonbone Dice Set', description: "Carved from a white dragon's wingtip. Probably cursed.", character_id: orlinCharacter.id, value_gp: 25 },
+    { name: 'Platinum Signet Ring', description: 'Bears the crest of a fallen noble house.', character_id: null, value_gp: 250 },
+    { name: "Alchemist's Fire", description: 'Thrown flask: 1d4 fire damage at the start of each of the target’s turns.', character_id: lobosCharacter.id, value_gp: 50, quantity: 3 },
+    { name: 'Obsidian Idol', description: 'Whispers faintly when the moon is full.', character_id: null, value_gp: 180 },
+    { name: 'Immovable Rod', description: 'Fixes in place with up to 8,000 pounds of force.', character_id: malachaiCharacter.id, value_gp: 4800 },
+    { name: 'Sending Stones', description: 'Paired stones: once per dawn, send a 25-word message.', character_id: kitCharacter.id, value_gp: 2000 },
+    { name: 'Chest of Silver Trade Bars', description: 'Twenty stamped bars from the Vellu mint.', character_id: null, value_gp: 50, quantity: 20 },
+  ]);
+
+  /** Session-zero purse: pp/gp/ep/sp/cp — the five 5e denominations. */
+  const partyCurrency = currency.set({ platinum: 12, gold: 447, electrum: 0, silver: 210, copper: 89 });
+
   return {
     definitions: defs,
+    loot: lootRows,
+    currency: partyCurrency,
     uppy: {
       character: uppyCharacter,
       slots: uppySlots,

@@ -357,3 +357,226 @@ describe('POST /api/rests', () => {
     }
   });
 });
+
+describe('GET /api/loot', () => {
+  it('returns the seeded treasury with holder names joined', async () => {
+    const res = await request(app).get('/api/loot');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body).toHaveLength(15);
+
+    const bag = res.body.find((l) => l.name === 'Bag of Holding');
+    expect(bag).toMatchObject({
+      description: 'Holds 500 lbs in an extradimensional space.',
+      character_name: 'Orlin',
+      value_gp: 4000,
+    });
+
+    const pouch = res.body.find((l) => l.name === 'Gold Pouch');
+    expect(pouch.character_id).toBeNull();
+    expect(pouch.character_name).toBeNull();
+  });
+});
+
+describe('POST /api/loot', () => {
+  it('creates a single item with 201 and defaults applied', async () => {
+    const res = await request(app)
+      .post('/api/loot')
+      .send({ name: 'Suspicious Rock', description: 'It hums.' });
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      name: 'Suspicious Rock',
+      description: 'It hums.',
+      character_id: null,
+      character_name: null,
+      value_gp: 0,
+      quantity: 1,
+    });
+  });
+
+  it('creates a batch transactionally from an array body', async () => {
+    const res = await request(app)
+      .post('/api/loot')
+      .send([
+        { name: 'Ruby', description: 'Deep red.', value_gp: 500, character_id: party.uppy.character.id },
+        { name: 'Sapphire', description: 'Sea blue.', value_gp: 300, quantity: 4 },
+      ]);
+    expect(res.status).toBe(201);
+    expect(res.body.map((l) => l.name)).toEqual(['Ruby', 'Sapphire']);
+    expect(res.body[0].character_name).toBe('Uppy Beauty');
+    expect((await request(app).get('/api/loot')).body).toHaveLength(17);
+  });
+
+  it('rejects a batch containing one bad row without inserting any of it', async () => {
+    const res = await request(app)
+      .post('/api/loot')
+      .send([{ name: 'Fine', description: 'ok' }, { name: '  ', description: 'ok' }]);
+    expect(res.status).toBe(400);
+    expect((await request(app).get('/api/loot')).body).toHaveLength(15);
+  });
+
+  it('returns 400 for blank names, negative values, unknown holders, and empty arrays', async () => {
+    for (const body of [
+      { name: '   ', description: 'ok' },
+      { name: 'No Description' },
+      { name: 'Blank Description', description: '   ' },
+      {},
+      { name: 'Debt', description: 'ok', value_gp: -1 },
+      { name: 'Debt', description: 'ok', value_gp: 1.5 },
+      { name: 'None', description: 'ok', quantity: 0 },
+      { name: 'None', description: 'ok', quantity: -2 },
+      { name: 'Ghost', description: 'ok', character_id: 9999 },
+      [],
+    ]) {
+      const res = await request(app).post('/api/loot').send(body);
+      expect(res.status, JSON.stringify(body)).toBe(400);
+      expect(res.body.error).toBeTruthy();
+    }
+  });
+});
+
+describe('PATCH /api/loot/:id', () => {
+  it('revalues and reassigns an item', async () => {
+    const pouch = party.loot.find((l) => l.name === 'Gold Pouch');
+    const res = await request(app)
+      .patch(`/api/loot/${pouch.id}`)
+      .send({ value_gp: 999, character_id: party.kit.character.id });
+    expect(res.status).toBe(200);
+    expect(res.body.value_gp).toBe(999);
+    expect(res.body.character_name).toBe('Kit Sofia');
+  });
+
+  it('returns 404 for unknown ids and 400 for CHECK violations', async () => {
+    expect((await request(app).patch('/api/loot/9999').send({ value_gp: 1 })).status).toBe(404);
+    const pouch = party.loot.find((l) => l.name === 'Gold Pouch');
+    const bad = await request(app).patch(`/api/loot/${pouch.id}`).send({ value_gp: -10 });
+    expect(bad.status).toBe(400);
+  });
+});
+
+describe('DELETE /api/loot/:id', () => {
+  it('removes an item with 204 and 404s on a second attempt', async () => {
+    const idol = party.loot.find((l) => l.name === 'Obsidian Idol');
+    expect((await request(app).delete(`/api/loot/${idol.id}`)).status).toBe(204);
+    expect((await request(app).get('/api/loot')).body).toHaveLength(14);
+    expect((await request(app).delete(`/api/loot/${idol.id}`)).status).toBe(404);
+  });
+});
+
+describe('GET/PUT /api/currency', () => {
+  it('returns the seeded purse in all five denominations', async () => {
+    const res = await request(app).get('/api/currency');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ platinum: 12, gold: 447, electrum: 0, silver: 210, copper: 89 });
+  });
+
+  it('PUT sets a subset absolutely and returns the full purse', async () => {
+    const res = await request(app).put('/api/currency').send({ gold: 500, copper: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ platinum: 12, gold: 500, electrum: 0, silver: 210, copper: 0 });
+  });
+
+  it('PUT can zero the purse but never lets a denomination go negative', async () => {
+    const zeroed = await request(app)
+      .put('/api/currency')
+      .send({ platinum: 0, gold: 0, electrum: 0, silver: 0, copper: 0 });
+    expect(zeroed.status).toBe(200);
+    expect(Object.values(zeroed.body).every((v) => v === 0)).toBe(true);
+
+    const negative = await request(app).put('/api/currency').send({ copper: -1 });
+    expect(negative.status).toBe(400);
+    expect(negative.body.error).toMatch(/copper/);
+    // A mixed payload with one negative value is rejected atomically.
+    const mixed = await request(app).put('/api/currency').send({ gold: 999, silver: -5 });
+    expect(mixed.status).toBe(400);
+    expect((await request(app).get('/api/currency')).body).toEqual({
+      platinum: 0,
+      gold: 0,
+      electrum: 0,
+      silver: 0,
+      copper: 0,
+    });
+  });
+
+  it('PUT rejects unknown denominations and invalid amounts', async () => {
+    for (const body of [{ eternium: 5 }, { gold: -1 }, { gold: 1.5 }, {}]) {
+      const res = await request(app).put('/api/currency').send(body);
+      expect(res.status, JSON.stringify(body)).toBe(400);
+      expect(res.body.error).toBeTruthy();
+    }
+    expect((await request(app).get('/api/currency')).body.gold).toBe(447); // untouched
+  });
+});
+
+describe('POST /api/loot/:id/sell', () => {
+  const alchemists = () => party.loot.find((l) => l.name === "Alchemist's Fire");
+
+  it('partial sale: quantity drops, purse grows by the flat proceeds', async () => {
+    const res = await request(app)
+      .post(`/api/loot/${alchemists().id}/sell`)
+      .send({ quantity: 2, proceeds: { gold: 80 } });
+    expect(res.status).toBe(200);
+    expect(res.body.loot.quantity).toBe(1);
+    expect(res.body.currency.gold).toBe(527); // 447 + 80, NOT 447 + 2x80
+    expect(res.body.sold).toEqual({ quantity: 2, proceeds: { gold: 80 } });
+  });
+
+  it('a single sale can pay out across several denominations', async () => {
+    const res = await request(app)
+      .post(`/api/loot/${alchemists().id}/sell`)
+      .send({ quantity: 2, proceeds: { gold: 1, silver: 5, copper: 20 } });
+    expect(res.status).toBe(200);
+    expect(res.body.currency).toEqual({
+      platinum: 12,
+      gold: 448,
+      electrum: 0,
+      silver: 215,
+      copper: 109,
+    });
+  });
+
+  it('full sale removes the line item and reports loot: null', async () => {
+    const res = await request(app)
+      .post(`/api/loot/${alchemists().id}/sell`)
+      .send({ quantity: 3, proceeds: { platinum: 120 } });
+    expect(res.status).toBe(200);
+    expect(res.body.loot).toBeNull();
+    expect(res.body.currency.platinum).toBe(132);
+    expect((await request(app).get('/api/loot')).body).toHaveLength(14);
+  });
+
+  it('overselling is a 409 that moves neither goods nor coin', async () => {
+    const res = await request(app)
+      .post(`/api/loot/${alchemists().id}/sell`)
+      .send({ quantity: 5, proceeds: { gold: 500 } });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/Insufficient quantity/);
+    expect(repos.loot.getById(alchemists().id).quantity).toBe(3);
+    expect((await request(app).get('/api/currency')).body.gold).toBe(447);
+  });
+
+  it('returns 400 for invalid quantity/proceeds and 404 for unknown loot', async () => {
+    const { id } = alchemists();
+    for (const body of [
+      { quantity: 0, proceeds: { gold: 10 } },
+      { quantity: -1, proceeds: { gold: 10 } },
+      { quantity: 1, proceeds: { gold: -10 } },
+      { quantity: 1, proceeds: { gold: 1.5 } },
+      { quantity: 1, proceeds: { eternium: 10 } },
+      { quantity: 1, proceeds: { gold: 5, silver: -1 } }, // one bad entry poisons the sale
+      { quantity: 1, proceeds: [10] },
+      { quantity: 1 },
+      {},
+    ]) {
+      const res = await request(app).post(`/api/loot/${id}/sell`).send(body);
+      expect(res.status, JSON.stringify(body)).toBe(400);
+    }
+    // Nothing moved for any of them.
+    expect(repos.loot.getById(id).quantity).toBe(3);
+    expect((await request(app).get('/api/currency')).body).toMatchObject({ gold: 447, silver: 210 });
+    const missing = await request(app)
+      .post('/api/loot/9999/sell')
+      .send({ quantity: 1, proceeds: { gold: 10 } });
+    expect(missing.status).toBe(404);
+  });
+});

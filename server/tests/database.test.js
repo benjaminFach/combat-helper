@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe('migrations', () => {
-  it('creates all six tables', () => {
+  it('creates all eight tables', () => {
     const tables = db
       .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
       .all()
@@ -28,6 +28,8 @@ describe('migrations', () => {
       'character_playbooks',
       'character_resources',
       'characters',
+      'loot',
+      'party_currency',
       'playbook_rules',
       'playbook_signatures',
       'resource_definitions',
@@ -488,5 +490,219 @@ describe('referential integrity', () => {
         max_value: 1,
       })
     ).toThrow();
+  });
+});
+
+describe('loot repository', () => {
+  it('seeds 15 treasury entries with holder names joined in', () => {
+    const all = repos.loot.list();
+    expect(all).toHaveLength(15);
+
+    const bag = all.find((l) => l.name === 'Bag of Holding');
+    expect(bag.character_id).toBe(party.orlin.character.id);
+    expect(bag.character_name).toBe('Orlin');
+    expect(bag.value_gp).toBe(4000);
+
+    // Party-held loot has no holder at all.
+    const pouch = all.find((l) => l.name === 'Gold Pouch');
+    expect(pouch.character_id).toBeNull();
+    expect(pouch.character_name).toBeNull();
+  });
+
+  it('lists in case-insensitive name order for a stable default', () => {
+    const names = repos.loot.list().map((l) => l.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })));
+  });
+
+  it('creates with defaults: party-held, 0 gp, quantity 1 — but description is required', () => {
+    const rock = repos.loot.create({ name: 'Suspicious Rock', description: 'It hums.' });
+    expect(rock.character_id).toBeNull();
+    expect(rock.character_name).toBeNull();
+    expect(rock.value_gp).toBe(0);
+    expect(rock.quantity).toBe(1);
+    expect(repos.loot.getById(rock.id)).toEqual(rock);
+    expect(() => repos.loot.create({ name: 'No Description' })).toThrow(/description/);
+  });
+
+  it('createMany is all-or-nothing: one bad row rolls back the whole batch', () => {
+    const before = repos.loot.list().length;
+    expect(() =>
+      repos.loot.createMany([
+        { name: 'Fine Item', description: 'ok', value_gp: 10 },
+        { name: '   ', description: 'ok', value_gp: 10 }, // blank name
+      ])
+    ).toThrow(/name/);
+    expect(repos.loot.list()).toHaveLength(before); // nothing inserted
+
+    const created = repos.loot.createMany([
+      { name: 'Item A', description: 'first', value_gp: 1 },
+      { name: 'Item B', description: 'second', value_gp: 2 },
+    ]);
+    expect(created.map((l) => l.name)).toEqual(['Item A', 'Item B']);
+    expect(repos.loot.list()).toHaveLength(before + 2);
+  });
+
+  it('rejects empty createMany input and invalid rows with specific messages', () => {
+    expect(() => repos.loot.createMany([])).toThrow(/non-empty array/);
+    const valid = { name: 'Fine', description: 'ok' };
+    expect(() => repos.loot.create({ ...valid, value_gp: -5 })).toThrow(/value_gp/);
+    expect(() => repos.loot.create({ ...valid, value_gp: 2.5 })).toThrow(/value_gp/);
+    expect(() => repos.loot.create({ ...valid, quantity: 0 })).toThrow(/quantity/);
+    expect(() => repos.loot.create({ ...valid, quantity: -3 })).toThrow(/quantity/);
+    expect(() => repos.loot.create({ ...valid, quantity: 1.5 })).toThrow(/quantity/);
+    expect(() => repos.loot.create({ ...valid, description: '   ' })).toThrow(/description/);
+    expect(() => repos.loot.create({ ...valid, name: null })).toThrow(/name/);
+    expect(() => repos.loot.create({ ...valid, character_id: 'Uppy' })).toThrow(/character_id/);
+    expect(() => repos.loot.create({ ...valid, character_id: 9999 })).toThrow(); // FK
+  });
+
+  it('updates value and holder, ignoring unknown keys', () => {
+    const item = repos.loot.list().find((l) => l.name === 'Gold Pouch');
+    const updated = repos.loot.update(item.id, {
+      value_gp: 700,
+      character_id: party.uppy.character.id,
+      hacker_field: 'DROP TABLE loot',
+    });
+    expect(updated.value_gp).toBe(700);
+    expect(updated.character_name).toBe('Uppy Beauty');
+    expect(() => repos.loot.update(9999, { value_gp: 1 })).toThrow(/not found/);
+  });
+
+  it('returns loot to the party pool when its holder is deleted (SET NULL)', () => {
+    const before = repos.loot.list().filter((l) => l.character_id === party.orlin.character.id);
+    expect(before.length).toBeGreaterThan(0);
+
+    repos.characters.remove(party.orlin.character.id);
+    const after = repos.loot.list();
+    expect(after).toHaveLength(15); // nothing destroyed
+    for (const item of before) {
+      const surviving = after.find((l) => l.id === item.id);
+      expect(surviving.character_id).toBeNull();
+      expect(surviving.character_name).toBeNull();
+    }
+  });
+
+  it('removes entries and reports missing ids as false', () => {
+    const item = repos.loot.create({ name: 'Sold Gem', description: 'A gem.', value_gp: 5 });
+    expect(repos.loot.remove(item.id)).toBe(true);
+    expect(repos.loot.getById(item.id)).toBeNull();
+    expect(repos.loot.remove(item.id)).toBe(false);
+  });
+});
+
+describe('party currency', () => {
+  it('exists after migrate and is seeded with the five 5e denominations', () => {
+    expect(repos.currency.get()).toEqual({
+      platinum: 12,
+      gold: 447,
+      electrum: 0,
+      silver: 210,
+      copper: 89,
+    });
+  });
+
+  it('adds coins of a single denomination', () => {
+    expect(repos.currency.add('gold', 80).gold).toBe(527);
+    expect(repos.currency.add('copper', 0).copper).toBe(89); // zero is a legal no-op
+    expect(repos.currency.get().platinum).toBe(12); // others untouched
+  });
+
+  it('sets any subset absolutely, rejecting unknown or invalid values', () => {
+    expect(repos.currency.set({ silver: 5, electrum: 2 })).toMatchObject({
+      silver: 5,
+      electrum: 2,
+      gold: 447,
+    });
+    expect(() => repos.currency.set({})).toThrow(/at least one/);
+    expect(() => repos.currency.set({ eternium: 5 })).toThrow(/Unknown denomination/);
+    expect(() => repos.currency.set({ gold: -1 })).toThrow(/gold/);
+    expect(() => repos.currency.set({ gold: 1.5 })).toThrow(/gold/);
+  });
+
+  it('can be emptied to exactly zero but never pushed below it', () => {
+    expect(repos.currency.set({ copper: 0, silver: 0 }).copper).toBe(0);
+    expect(() => repos.currency.set({ copper: -1 })).toThrow(/copper/);
+    // A mixed payload with one negative denomination changes NOTHING.
+    expect(() => repos.currency.set({ gold: 999, silver: -1 })).toThrow(/silver/);
+    expect(repos.currency.get()).toMatchObject({ gold: 447, silver: 0, copper: 0 });
+  });
+
+  it('rejects bad add() input without changing the purse', () => {
+    expect(() => repos.currency.add('eternium', 5)).toThrow(/Unknown denomination/);
+    expect(() => repos.currency.add('gold', -5)).toThrow(/amount/);
+    expect(() => repos.currency.add('gold', 2.5)).toThrow(/amount/);
+    expect(repos.currency.get().gold).toBe(447);
+  });
+});
+
+describe('selling loot', () => {
+  const alchemists = () => repos.loot.list().find((l) => l.name === "Alchemist's Fire");
+
+  it('partial sale decrements quantity and banks the proceeds in one transaction', () => {
+    const before = alchemists(); // quantity 3, unit 50
+    const result = repos.loot.sell(before.id, { quantity: 2, proceeds: { gold: 80 } });
+
+    expect(result.loot.quantity).toBe(1);
+    expect(result.currency.gold).toBe(527); // 447 + 80 — the TOTAL, not 2 x 80
+    expect(result.sold).toEqual({ quantity: 2, proceeds: { gold: 80 } });
+    expect(repos.loot.getById(before.id).quantity).toBe(1);
+  });
+
+  it('one sale can pay out in several denominations at once', () => {
+    const before = alchemists();
+    const result = repos.loot.sell(before.id, {
+      quantity: 2,
+      proceeds: { gold: 1, silver: 5, copper: 20 },
+    });
+    expect(result.currency).toEqual({
+      platinum: 12,
+      gold: 448, // 447 + 1
+      electrum: 0,
+      silver: 215, // 210 + 5
+      copper: 109, // 89 + 20
+    });
+    expect(result.loot.quantity).toBe(1);
+  });
+
+  it('selling the full quantity removes the row entirely', () => {
+    const before = alchemists();
+    const result = repos.loot.sell(before.id, { quantity: 3, proceeds: { silver: 120 } });
+    expect(result.loot).toBeNull();
+    expect(repos.loot.getById(before.id)).toBeNull();
+    expect(result.currency.silver).toBe(330); // 210 + 120
+    expect(repos.loot.list()).toHaveLength(14);
+  });
+
+  it('refuses to oversell, leaving loot AND currency untouched', () => {
+    const before = alchemists();
+    expect(() =>
+      repos.loot.sell(before.id, { quantity: 4, proceeds: { gold: 200 } })
+    ).toThrow(/Insufficient quantity/);
+    expect(repos.loot.getById(before.id).quantity).toBe(3);
+    expect(repos.currency.get().gold).toBe(447);
+  });
+
+  it('validates quantity and every proceeds entry', () => {
+    const { id } = alchemists();
+    expect(() => repos.loot.sell(id, { quantity: 0, proceeds: { gold: 10 } })).toThrow(/quantity/);
+    expect(() => repos.loot.sell(id, { quantity: 1.5, proceeds: { gold: 10 } })).toThrow(/quantity/);
+    expect(() => repos.loot.sell(id, { quantity: 1, proceeds: { gold: -10 } })).toThrow(/gold/);
+    expect(() => repos.loot.sell(id, { quantity: 1, proceeds: { gold: 9.5 } })).toThrow(/gold/);
+    expect(() => repos.loot.sell(id, { quantity: 1, proceeds: { gold: 5, silver: -1 } })).toThrow(/silver/);
+    expect(() => repos.loot.sell(id, { quantity: 1, proceeds: { eternium: 10 } })).toThrow(/Unknown denomination/);
+    expect(() => repos.loot.sell(id, { quantity: 1 })).toThrow(/proceeds/);
+    expect(() => repos.loot.sell(id, { quantity: 1, proceeds: [10] })).toThrow(/proceeds/);
+    expect(() => repos.loot.sell(9999, { quantity: 1, proceeds: { gold: 10 } })).toThrow(/not found/);
+    // Nothing moved — including the valid gold half of the mixed bad payload.
+    expect(repos.loot.getById(id).quantity).toBe(3);
+    expect(repos.currency.get()).toMatchObject({ gold: 447, silver: 210 });
+  });
+
+  it('a sale for 0 coins still removes the goods (donations happen)', () => {
+    const { id } = alchemists();
+    const result = repos.loot.sell(id, { quantity: 1, proceeds: {} });
+    expect(result.loot.quantity).toBe(2);
+    expect(result.currency).toEqual(repos.currency.get());
+    expect(result.currency.copper).toBe(89);
   });
 });

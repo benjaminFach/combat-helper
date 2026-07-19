@@ -29,6 +29,11 @@
  *   row so the UI can dim/hide a rule when that resource is spent. It is a
  *   loose name reference (not an FK) because gating is advisory, and seed
  *   tests verify the names resolve for each owner.
+ * - `loot.value_gp` is the UNIT price; a line item's total worth is
+ *   value_gp * quantity, computed at read time, never stored.
+ * - `party_currency` is a singleton row (id forced to 1) holding the five
+ *   D&D 5e denominations (pp/gp/ep/sp/cp). The idempotent INSERT OR IGNORE
+ *   guarantees the row exists after every migrate.
  */
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS characters (
@@ -104,4 +109,26 @@ CREATE TABLE IF NOT EXISTS playbook_signatures (
   why_text    TEXT    NOT NULL,
   UNIQUE (playbook_id, slot)
 );
+
+CREATE TABLE IF NOT EXISTS loot (
+  id           INTEGER PRIMARY KEY,
+  name         TEXT    NOT NULL CHECK (length(trim(name)) > 0),
+  description  TEXT    NOT NULL CHECK (length(trim(description)) > 0),
+  character_id INTEGER REFERENCES characters(id) ON DELETE SET NULL,
+  value_gp     INTEGER NOT NULL DEFAULT 0 CHECK (value_gp >= 0),
+  quantity     INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_loot_character ON loot (character_id);
+
+CREATE TABLE IF NOT EXISTS party_currency (
+  id       INTEGER PRIMARY KEY CHECK (id = 1),
+  platinum INTEGER NOT NULL DEFAULT 0 CHECK (platinum >= 0),
+  gold     INTEGER NOT NULL DEFAULT 0 CHECK (gold >= 0),
+  electrum INTEGER NOT NULL DEFAULT 0 CHECK (electrum >= 0),
+  silver   INTEGER NOT NULL DEFAULT 0 CHECK (silver >= 0),
+  copper   INTEGER NOT NULL DEFAULT 0 CHECK (copper >= 0)
+);
+
+INSERT OR IGNORE INTO party_currency (id) VALUES (1);
 `;

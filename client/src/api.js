@@ -42,5 +42,37 @@ export const updateCharacter = (id, patch) =>
     body: JSON.stringify(patch),
   });
 
+/** GET the party treasury: every loot row with its holder's name joined in. */
+export const fetchLoot = () => req('/api/loot');
+
+/** GET the party purse: { platinum, gold, electrum, silver, copper }. */
+export const fetchCurrency = () => req('/api/currency');
+
+/**
+ * PUT absolute purse values (any subset of denominations). The server rejects
+ * negative or fractional amounts. Resolves with the full updated purse.
+ */
+export const updateCurrency = (values) =>
+  req('/api/currency', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(values),
+  });
+
+/** Add one loot item. Resolves with the created row (201). */
+export const createLoot = (item) => post('/api/loot', item);
+
+/** Remove one loot item outright (no sale). Resolves with {} on the 204. */
+export const deleteLoot = (id) => req(`/api/loot/${id}`, { method: 'DELETE' });
+
+/**
+ * Sell part or all of a line item. `proceeds` maps denominations to flat coin
+ * amounts for the whole sale (never multiplied by quantity), and one sale may
+ * mix several denominations: { gold: 1, silver: 5, copper: 20 }.
+ * Resolves with { loot: row|null, currency, sold }.
+ */
+export const sellLoot = (id, { quantity, proceeds }) =>
+  post(`/api/loot/${id}/sell`, { quantity, proceeds });
+
 /** Trigger a party-wide rest. Resolves with { type, refreshed, characters }. */
 export const triggerRest = (type) => post('/api/rests', { type });

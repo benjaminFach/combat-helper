@@ -175,3 +175,178 @@ describe('the rest of the party', () => {
     });
   });
 });
+
+describe('de-ranking depleted reminders', () => {
+  /** Tempest Cleric with three limited-use reminders and real reset triggers. */
+  const kit = ({ cd = {}, wrath = {}, di = {} } = {}) =>
+    character({
+      class: 'Cleric',
+      subclass: 'Tempest Domain',
+      resources: [
+        resource('Channel Divinity (Tempest)', {
+          id: 201,
+          current_value: 3,
+          max_value: 3,
+          refresh_on: 'long_rest',
+          short_rest_gain: 1,
+          ...cd,
+        }),
+        resource('Wrath of the Storm', {
+          id: 202,
+          current_value: 5,
+          max_value: 5,
+          refresh_on: 'long_rest',
+          short_rest_gain: 0,
+          ...wrath,
+        }),
+        resource('Divine Intervention', {
+          id: 203,
+          refresh_on: 'long_rest',
+          short_rest_gain: 0,
+          ...di,
+        }),
+      ],
+    });
+
+  const byKey = (c) => getCombatReminders(c).reminders.map((r) => r.key);
+  const find = (c, key) => getCombatReminders(c).reminders.find((r) => r.key === key);
+
+  it('flags nothing on a fully charged character', () => {
+    const { reminders } = getCombatReminders(kit());
+    expect(reminders.every((r) => r.depleted === false)).toBe(true);
+    expect(reminders.every((r) => r.reset === null)).toBe(true);
+    expect(byKey(kit())).toEqual(['destructive-wrath', 'wrath-of-the-storm', 'divine-intervention']);
+  });
+
+  it('moves an out-of-charges reminder to the bottom, flagged with its reset trigger', () => {
+    const spent = kit({ wrath: { current_value: 0 } });
+    expect(byKey(spent)).toEqual(['destructive-wrath', 'divine-intervention', 'wrath-of-the-storm']);
+    const wrath = find(spent, 'wrath-of-the-storm');
+    expect(wrath.depleted).toBe(true);
+    expect(wrath.reset).toEqual({ tag: 'LR', title: 'Resets on a long rest' });
+    // The others are untouched.
+    expect(find(spent, 'destructive-wrath').depleted).toBe(false);
+    expect(find(spent, 'divine-intervention').reset).toBeNull();
+  });
+
+  it('partial-recovery resources carry their combined reset tag (SR +1 · LR)', () => {
+    const spent = kit({ cd: { current_value: 0 } });
+    const wrath = find(spent, 'destructive-wrath'); // rides on Channel Divinity
+    expect(wrath.depleted).toBe(true);
+    expect(wrath.reset.tag).toBe('SR +1 · LR');
+  });
+
+  it('recharging clears the flag and restores the original order', () => {
+    const spent = kit({ wrath: { current_value: 0 } });
+    expect(find(spent, 'wrath-of-the-storm').depleted).toBe(true);
+
+    const recharged = kit({ wrath: { current_value: 5 } });
+    expect(find(recharged, 'wrath-of-the-storm').depleted).toBe(false);
+    expect(find(recharged, 'wrath-of-the-storm').reset).toBeNull();
+    expect(byKey(recharged)).toEqual([
+      'destructive-wrath',
+      'wrath-of-the-storm',
+      'divine-intervention',
+    ]);
+  });
+
+  it('a single regained use is enough to re-rank (0 -> 1)', () => {
+    const oneUse = kit({ wrath: { current_value: 1 } });
+    expect(find(oneUse, 'wrath-of-the-storm').depleted).toBe(false);
+    expect(byKey(oneUse)).toEqual(['destructive-wrath', 'wrath-of-the-storm', 'divine-intervention']);
+  });
+
+  it('multiple depleted reminders all sink, keeping their relative order', () => {
+    const spent = kit({ cd: { current_value: 0 }, wrath: { current_value: 0 } });
+    expect(byKey(spent)).toEqual(['divine-intervention', 'destructive-wrath', 'wrath-of-the-storm']);
+    expect(find(spent, 'destructive-wrath').depleted).toBe(true);
+    expect(find(spent, 'wrath-of-the-storm').depleted).toBe(true);
+    expect(find(spent, 'divine-intervention').depleted).toBe(false);
+  });
+
+  it('at-will abilities (max_value 0) never deplete', () => {
+    const orlin = character({
+      class: 'Artificer',
+      resources: [
+        resource('Alert - Initiative Swap', { max_value: 0, current_value: 0, refresh_on: 'manual' }),
+      ],
+    });
+    const alert = find(orlin, 'alert-initiative-swap');
+    expect(alert.depleted).toBe(false);
+    expect(alert.reset).toBeNull();
+
+    const uppy = character({
+      class: 'Cleric',
+      subclass: 'Twilight Domain',
+      resources: [
+        resource('Vigilant Blessing', { max_value: 0, current_value: 0, refresh_on: 'manual' }),
+      ],
+    });
+    expect(find(uppy, 'vigilant-blessing').depleted).toBe(false);
+  });
+
+  it('dawn-recharge items deplete with a Dawn tag while their hit-dice gate is open (Lobos)', () => {
+    const lobos = (hp) =>
+      character({
+        class: 'Blood Hunter',
+        subclass: 'Order of the Lycan',
+        max_hp: 83,
+        current_hp: hp,
+        resources: [
+          resource('Shift', { id: 301, max_value: 4, current_value: 4, refresh_on: 'long_rest' }),
+          resource('Bloodshed Greatsword - Invoke Rune', {
+            id: 302,
+            max_value: 1,
+            current_value: 0,
+            refresh_on: 'dawn',
+          }),
+          resource('Bloodsmelt Plate Armor', {
+            id: 303,
+            max_value: 1,
+            current_value: 0,
+            refresh_on: 'dawn',
+          }),
+          resource('Crimson Rite', { id: 304, max_value: 0, current_value: 0, refresh_on: 'manual' }),
+        ],
+      });
+
+    // Full HP: rune shows (10 hit dice) but its daily charge is gone.
+    const healthy = lobos(83);
+    expect(byKey(healthy)).toEqual(['shift', 'crimson-rite', 'bloodshed-greatsword']);
+    expect(find(healthy, 'bloodshed-greatsword').depleted).toBe(true);
+    expect(find(healthy, 'bloodshed-greatsword').reset).toEqual({
+      tag: 'Dawn',
+      title: 'Recharges at dawn',
+    });
+
+    // Bloodied: the plate joins in, also depleted, after the rune.
+    const bloodied = lobos(20);
+    expect(byKey(bloodied)).toEqual([
+      'shift',
+      'crimson-rite',
+      'bloodshed-greatsword',
+      'bloodsmelt-plate',
+    ]);
+    expect(find(bloodied, 'bloodsmelt-plate').depleted).toBe(true);
+
+    // The hit-dice hide rule still wins over de-ranking: no dice, no reminder.
+    const noDice = { ...lobos(20), current_hit_dice: 0 };
+    expect(byKey(noDice)).toEqual(['shift', 'crimson-rite']);
+  });
+
+  it("Uppy's Divine Intervention sinks below Sanctuary and Vigilant Blessing when spent", () => {
+    const uppy = character({
+      class: 'Cleric',
+      subclass: 'Twilight Domain',
+      resources: [
+        resource('Vigilant Blessing', { id: 401, max_value: 0, current_value: 0, refresh_on: 'manual' }),
+        resource('Channel Divinity (Twilight)', { id: 402, max_value: 3, current_value: 3, refresh_on: 'long_rest' }),
+        resource('Divine Intervention', { id: 403, max_value: 1, current_value: 0, refresh_on: 'long_rest' }),
+      ],
+    });
+    expect(byKey(uppy)).toEqual(['vigilant-blessing', 'twilight-sanctuary', 'divine-intervention']);
+    expect(find(uppy, 'divine-intervention').depleted).toBe(true);
+    expect(find(uppy, 'divine-intervention').reset.tag).toBe('LR');
+    expect(find(uppy, 'twilight-sanctuary').depleted).toBe(false);
+  });
+});

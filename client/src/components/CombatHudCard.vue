@@ -156,27 +156,51 @@ async function setActive(resourceId, active) {
         <div class="h-px min-w-0 flex-1 bg-edge" />
       </div>
       <ul class="flex flex-col gap-1.5">
+        <!-- Depleted entries sort last (see combatReminders.js) and read as
+             struck-through/dimmed with a Spent chip + their recharge trigger. -->
         <li
           v-for="item in hud.reminders"
           :key="item.key"
           data-testid="reminder"
           :data-reminder="item.key"
+          :data-depleted="item.depleted"
           class="min-w-0"
+          :class="item.depleted ? 'opacity-60' : ''"
         >
           <div class="flex flex-wrap items-center justify-between gap-x-2">
-            <span class="text-sm leading-snug">{{ item.name }}</span>
+            <span
+              class="text-sm leading-snug"
+              :class="item.depleted ? 'text-faded line-through decoration-faded/70' : ''"
+              >{{ item.name }}</span
+            >
+            <span v-if="item.depleted" class="flex shrink-0 items-center gap-1">
+              <span
+                data-testid="reminder-depleted"
+                class="rounded-full border border-blood/40 bg-blood/10 px-1.5 py-px text-[9px] uppercase leading-tight tracking-[0.12em] text-blood/90"
+                title="No uses remaining"
+                >Spent</span
+              >
+              <span
+                v-if="item.reset"
+                data-testid="reminder-reset"
+                class="rounded-full border border-edge/80 bg-ink/40 px-1.5 py-px text-[9px] uppercase leading-tight tracking-[0.12em] text-faded"
+                :title="item.reset.title"
+                >{{ item.reset.tag }}</span
+              >
+            </span>
             <button
               v-if="item.toggle"
               type="button"
               :data-testid="`activate-${item.key}`"
               class="hud-btn uppercase tracking-wide"
-             
               @click="setActive(item.toggle.resourceId, true)"
             >
               Activate
             </button>
           </div>
-          <p class="text-[11px] leading-snug text-faded/90">{{ item.text }}</p>
+          <p class="text-[11px] leading-snug" :class="item.depleted ? 'text-faded/60' : 'text-faded/90'">
+            {{ item.text }}
+          </p>
         </li>
       </ul>
     </section>

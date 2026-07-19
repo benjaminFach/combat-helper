@@ -93,6 +93,119 @@ describe('CombatHudCard — combat role banner', () => {
   });
 });
 
+describe('CombatHudCard — depleted reminder de-ranking', () => {
+  /** Uppy with Divine Intervention out of uses (LR recharge). */
+  const withSpentDI = () => {
+    const c = uppy();
+    c.resources = c.resources.map((r) =>
+      r.resource_name === 'Divine Intervention'
+        ? { ...r, current_value: 0, refresh_on: 'long_rest', short_rest_gain: 0 }
+        : r
+    );
+    return c;
+  };
+
+  /** Kit-shaped character whose FIRST reminder (Destructive Wrath) can sink. */
+  const kit = (cdValue) =>
+    uppy({
+      class: 'Cleric',
+      subclass: 'Tempest Domain',
+      resources: [
+        {
+          id: 21,
+          resource_name: 'Channel Divinity (Tempest)',
+          label: 'Channel Divinity',
+          description: 'Destructive Wrath — max Lightning/Thunder damage.',
+          current_value: cdValue,
+          max_value: 3,
+          refresh_on: 'long_rest',
+          short_rest_gain: 1,
+          is_active: false,
+        },
+        {
+          id: 22,
+          resource_name: 'Wrath of the Storm',
+          description: 'Reaction: 2d8 Lightning/Thunder.',
+          current_value: 5,
+          max_value: 5,
+          refresh_on: 'long_rest',
+          short_rest_gain: 0,
+          is_active: false,
+        },
+        {
+          id: 23,
+          resource_name: 'Divine Intervention',
+          description: 'Cast a level 5 spell for free.',
+          current_value: 1,
+          max_value: 1,
+          refresh_on: 'long_rest',
+          short_rest_gain: 0,
+          is_active: false,
+        },
+      ],
+    });
+
+  const reminderKeys = (wrapper) =>
+    wrapper.findAll('[data-testid="reminder"]').map((li) => li.attributes('data-reminder'));
+
+  it('renders no depleted reminders on a fully charged character', () => {
+    const wrapper = mount(CombatHudCard, { props: { character: uppy() } });
+    expect(wrapper.findAll('[data-testid="reminder"]').length).toBeGreaterThan(0);
+    expect(wrapper.findAll('[data-testid="reminder"][data-depleted="true"]')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="reminder-depleted"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="reminder-reset"]').exists()).toBe(false);
+  });
+
+  it('marks a spent reminder with muted styling, a Spent chip, and its reset trigger', () => {
+    const wrapper = mount(CombatHudCard, { props: { character: withSpentDI() } });
+    const di = wrapper.find('[data-reminder="divine-intervention"]');
+    expect(di.attributes('data-depleted')).toBe('true');
+    expect(di.classes()).toContain('opacity-60');
+    expect(di.find('span.line-through').exists()).toBe(true);
+    expect(di.find('[data-testid="reminder-depleted"]').text()).toBe('Spent');
+    const reset = di.find('[data-testid="reminder-reset"]');
+    expect(reset.text()).toBe('LR');
+    expect(reset.attributes('title')).toBe('Resets on a long rest');
+    // The healthy reminders are untouched.
+    expect(wrapper.find('[data-reminder="vigilant-blessing"]').attributes('data-depleted')).toBe(
+      'false'
+    );
+  });
+
+  it('sinks a depleted first reminder to the bottom of the list', () => {
+    const healthy = mount(CombatHudCard, { props: { character: kit(3) } });
+    expect(reminderKeys(healthy)).toEqual([
+      'destructive-wrath',
+      'wrath-of-the-storm',
+      'divine-intervention',
+    ]);
+
+    const spent = mount(CombatHudCard, { props: { character: kit(0) } });
+    expect(reminderKeys(spent)).toEqual([
+      'wrath-of-the-storm',
+      'divine-intervention',
+      'destructive-wrath',
+    ]);
+    expect(
+      spent.find('[data-reminder="destructive-wrath"] [data-testid="reminder-reset"]').text()
+    ).toBe('SR +1 · LR'); // partial short-rest recovery flows into the indicator
+  });
+
+  it('re-ranks live when the prop updates with restored charges', async () => {
+    const wrapper = mount(CombatHudCard, { props: { character: kit(0) } });
+    expect(wrapper.findAll('[data-testid="reminder"][data-depleted="true"]')).toHaveLength(1);
+
+    await wrapper.setProps({ character: kit(1) }); // one use back is enough
+    expect(wrapper.findAll('[data-testid="reminder"][data-depleted="true"]')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="reminder-reset"]').exists()).toBe(false);
+    expect(reminderKeys(wrapper)).toEqual([
+      'destructive-wrath',
+      'wrath-of-the-storm',
+      'divine-intervention',
+    ]);
+  });
+});
+
 describe('CombatHudCard — vitals mutations', () => {
   it('emits the optimistic value BEFORE the server responds, then the server row', async () => {
     const d = deferred();

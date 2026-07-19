@@ -6,10 +6,13 @@ import { test, expect } from '@playwright/test';
  * proves the seed -> API -> render pipeline end to end.
  *
  * The stack is re-seeded before every run (see playwright.config.js).
+ * The Combat HUD is the default view, so the roster lives behind the
+ * Ledger tab.
  */
 test.describe('Party roster', () => {
   test('all 5 character cards render', async ({ page }) => {
     await page.goto('/');
+    await page.getByTestId('tab-ledger').click();
 
     for (const name of ['Uppy Beauty', 'Kit Sofia', 'Lobos', 'Malachai', 'Orlin']) {
       await expect(page.getByRole('article', { name, exact: true })).toBeVisible();
@@ -19,6 +22,7 @@ test.describe('Party roster', () => {
 
   test("Lobos's card lists his resources loaded from the backend", async ({ page }) => {
     await page.goto('/');
+    await page.getByTestId('tab-ledger').click();
 
     const lobos = page.getByRole('article', { name: 'Lobos', exact: true });
     await expect(lobos).toBeVisible();
