@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { updateCharacter, setResourceActive } from '../api.js';
-import { isBloodied, potionCount, getCombatReminders } from '../combatReminders.js';
+import { isBloodied, getCombatReminders } from '../combatReminders.js';
 
 const props = defineProps({
   character: { type: Object, required: true },
@@ -9,8 +9,12 @@ const props = defineProps({
 const emit = defineEmits(['character-updated', 'resource-updated', 'resource-error']);
 
 const bloodied = computed(() => isBloodied(props.character));
-const potions = computed(() => potionCount(props.character));
 const hud = computed(() => getCombatReminders(props.character));
+
+/** Consumables (Healing Potions...) — the same rows the Ledger's ± edits. */
+const consumables = computed(() =>
+  props.character.resources.filter((r) => r.category === 'consumable')
+);
 
 /**
  * Mutations are optimistic: emit the new value to the parent BEFORE the
@@ -21,15 +25,14 @@ const hud = computed(() => getCombatReminders(props.character));
  */
 let inflight = 0;
 
-/** Adjust one character vital by delta, clamped to [0, max], then write through. */
-async function adjustVital(field, delta, max) {
+/** Write one vital through to the server, optimistically. */
+async function setVital(field, value) {
   const previous = props.character[field];
-  const next = Math.max(0, Math.min(max, previous + delta));
-  if (next === previous) return;
-  emit('character-updated', { id: props.character.id, [field]: next }); // optimistic
+  if (value === previous) return;
+  emit('character-updated', { id: props.character.id, [field]: value }); // optimistic
   inflight += 1;
   try {
-    const updated = await updateCharacter(props.character.id, { [field]: next });
+    const updated = await updateCharacter(props.character.id, { [field]: value });
     if (inflight === 1) emit('character-updated', updated);
   } catch (err) {
     emit('character-updated', { id: props.character.id, [field]: previous }); // rollback
@@ -37,6 +40,45 @@ async function adjustVital(field, delta, max) {
   } finally {
     inflight -= 1;
   }
+}
+
+/** Adjust one character vital by delta, clamped to [0, max] (hit dice steppers). */
+function adjustVital(field, delta, max) {
+  return setVital(field, Math.max(0, Math.min(max, props.character[field] + delta)));
+}
+
+/**
+ * The HP line is directly editable; these rules mirror the database CHECKs
+ * (current BETWEEN 0 AND max, max > 0, temp >= 0) so bad edits are rejected
+ * with a readable message before a request is ever made.
+ */
+const VITAL_RULES = {
+  current_hp: (c, n) =>
+    n < 0 || n > c.max_hp ? `current HP must be between 0 and ${c.max_hp}` : null,
+  max_hp: (c, n) =>
+    n < 1
+      ? 'max HP must be at least 1'
+      : n < c.current_hp
+        ? `max HP cannot be below current HP (${c.current_hp}) — lower current HP first`
+        : null,
+  temp_hp: (_c, n) => (n < 0 ? 'temp HP cannot be negative' : null),
+};
+
+/** Commit an edited HP field: validate, then write through — or revert. */
+function commitVital(field, event) {
+  const raw = event.target.value.trim();
+  const value = Number(raw);
+  const message =
+    raw === '' || !Number.isInteger(value)
+      ? `${field.replace('_', ' ')} must be a whole number`
+      : VITAL_RULES[field](props.character, value);
+  if (message) {
+    emit('resource-error', `${props.character.name}: ${message}`);
+    // The prop never changed, so Vue won't re-patch the input — reset by hand.
+    event.target.value = String(props.character[field]);
+    return;
+  }
+  setVital(field, value);
 }
 
 /** Flip a toggleable feature (Twilight Sanctuary) on or off. */
@@ -84,28 +126,42 @@ async function setActive(resourceId, active) {
       <template v-if="character.subclass">{{ character.subclass }} · </template>{{ character.class }}
     </p>
 
-    <!-- Status snapshot: HP / Temp / Hit Dice / Potions -->
+    <!-- Status snapshot: one editable HP line (current / max + temp), hit dice -->
     <div class="mt-2.5 flex flex-col gap-1.5 border-y border-edge py-2">
       <div class="flex flex-wrap items-center justify-between gap-1.5">
         <span class="text-xs uppercase tracking-[0.15em] text-faded">HP</span>
-        <span class="flex items-center gap-1">
-          <button type="button" data-testid="hp-dec-5" class="hud-btn" :disabled="character.current_hp === 0" aria-label="Lose 5 HP" @click="adjustVital('current_hp', -5, character.max_hp)">−5</button>
-          <button type="button" data-testid="hp-dec-1" class="hud-btn" :disabled="character.current_hp === 0" aria-label="Lose 1 HP" @click="adjustVital('current_hp', -1, character.max_hp)">−1</button>
-          <span class="mx-1 font-display text-lg tabular-nums leading-none" :class="bloodied ? 'text-blood' : ''">
-            <span data-testid="hud-hp">{{ character.current_hp }}</span
-            ><span class="text-sm text-faded">/{{ character.max_hp }}</span>
-          </span>
-          <button type="button" data-testid="hp-inc-1" class="hud-btn" :disabled="character.current_hp === character.max_hp" aria-label="Regain 1 HP" @click="adjustVital('current_hp', 1, character.max_hp)">+1</button>
-          <button type="button" data-testid="hp-inc-5" class="hud-btn" :disabled="character.current_hp === character.max_hp" aria-label="Regain 5 HP" @click="adjustVital('current_hp', 5, character.max_hp)">+5</button>
-        </span>
-      </div>
-
-      <div class="flex flex-wrap items-center justify-between gap-1.5">
-        <span class="text-xs uppercase tracking-[0.15em] text-faded">Temp HP</span>
-        <span class="flex items-center gap-1">
-          <button type="button" data-testid="temp-dec-1" class="hud-btn" :disabled="character.temp_hp === 0" aria-label="Lose 1 temp HP" @click="adjustVital('temp_hp', -1, 999)">−1</button>
-          <span data-testid="hud-temp-hp" class="mx-1 min-w-[2ch] text-center font-display text-lg tabular-nums leading-none">{{ character.temp_hp }}</span>
-          <button type="button" data-testid="temp-inc-1" class="hud-btn" aria-label="Gain 1 temp HP" @click="adjustVital('temp_hp', 1, 999)">+1</button>
+        <span class="flex items-center gap-0.5 font-display text-lg tabular-nums leading-none">
+          <input
+            data-testid="hud-hp"
+            :value="character.current_hp"
+            type="number"
+            inputmode="numeric"
+            class="vital-input w-12 text-right"
+            :class="bloodied ? 'text-blood' : ''"
+            aria-label="Current HP"
+            @change="commitVital('current_hp', $event)"
+          />
+          <span class="text-sm text-faded">/</span>
+          <input
+            data-testid="hud-max-hp"
+            :value="character.max_hp"
+            type="number"
+            inputmode="numeric"
+            class="vital-input w-12"
+            aria-label="Max HP"
+            @change="commitVital('max_hp', $event)"
+          />
+          <span class="ml-1 text-sm text-faded">+</span>
+          <input
+            data-testid="hud-temp-hp"
+            :value="character.temp_hp"
+            type="number"
+            inputmode="numeric"
+            class="vital-input w-10 text-tonic"
+            aria-label="Temporary HP"
+            @change="commitVital('temp_hp', $event)"
+          />
+          <span class="text-[9px] uppercase tracking-[0.12em] text-faded">temp</span>
         </span>
       </div>
 
@@ -119,11 +175,6 @@ async function setActive(resourceId, active) {
           </span>
           <button type="button" data-testid="hd-inc-1" class="hud-btn" :disabled="character.current_hit_dice === character.max_hit_dice" aria-label="Regain 1 hit die" @click="adjustVital('current_hit_dice', 1, character.max_hit_dice)">+1</button>
         </span>
-      </div>
-
-      <div class="flex items-center justify-between gap-1.5">
-        <span class="text-xs uppercase tracking-[0.15em] text-faded">Healing Potions</span>
-        <span data-testid="hud-potions" class="font-display text-lg tabular-nums leading-none text-tonic">{{ potions }}</span>
       </div>
     </div>
 
@@ -204,11 +255,40 @@ async function setActive(resourceId, active) {
         </li>
       </ul>
     </section>
+
+    <!-- Consumables: stock counts shared 1:1 with the Ledger's ± counters -->
+    <section v-if="consumables.length" data-testid="hud-consumables" class="mt-2.5 min-w-0">
+      <div class="mb-1 flex items-center gap-2">
+        <h3 class="shrink-0 text-[10px] font-semibold uppercase tracking-[0.15em] text-tonic">Consumables</h3>
+        <div class="h-px min-w-0 flex-1 bg-edge" />
+      </div>
+      <ul class="flex flex-col gap-1">
+        <li
+          v-for="item in consumables"
+          :key="item.id"
+          data-testid="hud-consumable"
+          :data-consumable="item.resource_name"
+          class="flex items-center justify-between gap-2"
+        >
+          <span class="text-sm leading-snug">{{ item.label ?? item.resource_name }}</span>
+          <span data-testid="consumable-count" class="font-display text-lg tabular-nums leading-none text-tonic">
+            {{ item.current_value }}
+          </span>
+        </li>
+      </ul>
+    </section>
   </article>
 </template>
 
 <style scoped>
 @reference "../style.css";
+/* Editable vitals read as plain numbers until touched; no spinner chrome. */
+.vital-input {
+  @apply rounded border border-transparent bg-transparent px-0.5 text-center font-display
+    tabular-nums transition-colors duration-100 [appearance:textfield] hover:border-edge
+    focus-visible:border-faded focus-visible:outline-none motion-reduce:transition-none
+    [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
+}
 .hud-btn {
   @apply rounded border border-edge px-1.5 py-0.5 text-xs text-faded transition-colors duration-100
     hover:border-faded hover:text-parchment focus-visible:outline focus-visible:outline-2

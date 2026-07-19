@@ -147,17 +147,17 @@ test.describe('Twilight Sanctuary activation does not lock the HUD card', () => 
       await uppy.getByTestId('activate-twilight-sanctuary').click();
 
       // Reminder flips optimistically; the card must NOT lock up meanwhile.
-      // (hp-inc-1 is absent from the list: at full HP it is disabled by its
-      // own max boundary, which is correct and unrelated to the request.)
       await expect(uppy.locator('[data-reminder="twilight-sanctuary"]')).toHaveCount(0);
-      for (const id of ['hp-dec-5', 'hp-dec-1', 'temp-inc-1', 'hd-dec-1']) {
+      for (const id of ['hud-hp', 'hud-max-hp', 'hud-temp-hp', 'hd-dec-1']) {
         await expect(uppy.getByTestId(id), id).toBeEnabled();
       }
 
-      await uppy.getByTestId('hp-dec-1').click();
-      await expect(uppy.getByTestId('hud-hp')).toHaveText('62');
-      await uppy.getByTestId('temp-inc-1').click();
-      await expect(uppy.getByTestId('hud-temp-hp')).toHaveText('1');
+      await uppy.getByTestId('hud-hp').fill('62');
+      await uppy.getByTestId('hud-hp').blur();
+      await expect(uppy.getByTestId('hud-hp')).toHaveValue('62');
+      await uppy.getByTestId('hud-temp-hp').fill('1');
+      await uppy.getByTestId('hud-temp-hp').blur();
+      await expect(uppy.getByTestId('hud-temp-hp')).toHaveValue('1');
 
       // Everything lands server-side: the delayed toggle and the fast PATCHes.
       await expect

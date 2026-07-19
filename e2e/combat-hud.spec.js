@@ -80,12 +80,30 @@ test.describe('Status snapshot', () => {
     await openHud(page);
 
     const uppy = hudCard(page, 'Uppy Beauty');
-    await expect(uppy.getByTestId('hud-hp')).toHaveText('63');
-    await expect(uppy).toContainText('63/63');
-    await expect(uppy.getByTestId('hud-temp-hp')).toHaveText('0');
+    // The HP line is one row of editable fields: current / max + temp.
+    await expect(uppy.getByTestId('hud-hp')).toHaveValue('63');
+    await expect(uppy.getByTestId('hud-max-hp')).toHaveValue('63');
+    await expect(uppy.getByTestId('hud-temp-hp')).toHaveValue('0');
     await expect(uppy.getByTestId('hud-hit-dice')).toHaveText('10');
-    await expect(uppy.getByTestId('hud-potions')).toHaveText('3'); // clerics stock 3
-    await expect(hudCard(page, 'Lobos').getByTestId('hud-potions')).toHaveText('0');
+    // Consumables live in their own section below the reminders.
+    const potions = uppy.locator('[data-consumable="Healing Potions"]');
+    await expect(potions.getByTestId('consumable-count')).toHaveText('3'); // clerics stock 3
+    await expect(
+      hudCard(page, 'Lobos')
+        .locator('[data-consumable="Healing Potions"]')
+        .getByTestId('consumable-count')
+    ).toHaveText('0');
+  });
+
+  test('the Consumables section sits below the Reminders section', async ({ page }) => {
+    await openHud(page);
+    const uppy = hudCard(page, 'Uppy Beauty');
+    await expect(uppy.getByTestId('hud-consumables')).toContainText('Consumables');
+    const positions = await uppy.evaluate((card) => ({
+      reminder: card.querySelector('[data-testid="reminder"]').getBoundingClientRect().top,
+      consumables: card.querySelector('[data-testid="hud-consumables"]').getBoundingClientRect().top,
+    }));
+    expect(positions.consumables).toBeGreaterThan(positions.reminder);
   });
 
   test('every character gets their expected always-on reminders', async ({ page }) => {
@@ -123,7 +141,11 @@ test.describe('Status snapshot', () => {
     await expect(uppyLedger.getByTestId('counter-value')).toHaveText('4');
 
     await page.getByTestId('tab-hud').click();
-    await expect(hudCard(page, 'Uppy Beauty').getByTestId('hud-potions')).toHaveText('4');
+    await expect(
+      hudCard(page, 'Uppy Beauty')
+        .locator('[data-consumable="Healing Potions"]')
+        .getByTestId('consumable-count')
+    ).toHaveText('4');
 
     // Restore the seed value for the other spec files — and wait for the
     // write to land in SQLite so the test can't leak state.
@@ -144,10 +166,12 @@ test.describe('Bloodied indicator', () => {
       const uppy = hudCard(page, 'Uppy Beauty');
       await expect(uppy.getByTestId('bloodied')).toHaveCount(0); // 32 is not below half
 
-      await uppy.getByTestId('hp-dec-1').click(); // 31 < 31.5
+      await uppy.getByTestId('hud-hp').fill('31'); // 31 < 31.5
+      await uppy.getByTestId('hud-hp').blur(); // commit the edit
       await expect(uppy.getByTestId('bloodied')).toBeVisible();
 
-      await uppy.getByTestId('hp-inc-1').click(); // back to 32
+      await uppy.getByTestId('hud-hp').fill('32'); // back to 32
+      await uppy.getByTestId('hud-hp').blur();
       await expect(uppy.getByTestId('bloodied')).toHaveCount(0);
       // Both optimistic PATCHes must land before the restore below runs,
       // or a late click-PATCH would overwrite it.

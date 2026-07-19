@@ -273,6 +273,8 @@ describe('PATCH /api/characters/:id', () => {
       { current_hp: 9999 }, // above max_hp
       { current_hp: -1 },
       { temp_hp: -3 },
+      { max_hp: 10 }, // below current_hp (63) — CHECK current BETWEEN 0 AND max
+      { max_hp: 0 },
       { current_hit_dice: 11 }, // above max_hit_dice
     ]) {
       const res = await request(app).patch(`/api/characters/${id}`).send(patch);
@@ -281,6 +283,7 @@ describe('PATCH /api/characters/:id', () => {
     }
     const uppy = repos.characters.getById(id);
     expect(uppy.current_hp).toBe(63);
+    expect(uppy.max_hp).toBe(63);
     expect(uppy.temp_hp).toBe(0);
     expect(uppy.current_hit_dice).toBe(10);
   });
