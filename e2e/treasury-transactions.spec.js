@@ -348,3 +348,173 @@ test.describe('Sell item', () => {
     expect((await (await request.get('/api/currency')).json()).gold).toBe(SEED_PURSE.gold);
   });
 });
+
+test.describe('Save button reliability across modals', () => {
+  /**
+   * Regression: `busy` (disables Save) and "which modal to close on success"
+   * used to be tracked on shared, single state across all four Treasury
+   * modals. Canceling a slow request (e.g. Add) and then opening a DIFFERENT
+   * modal (e.g. Modify Currency) left that modal's Save permanently disabled
+   * — stuck on the abandoned request's busy flag — with no visible reason.
+   * Worse: when the abandoned request finally resolved, its success handler
+   * unconditionally closed "the current modal," silently discarding whatever
+   * the user was mid-edit on. Each modal now owns its own busy flag and only
+   * closes itself if it's still the one open.
+   */
+  test('Save on the currency modal is not blocked or clobbered by an abandoned Add request', async ({
+    page,
+    request,
+  }) => {
+    try {
+      await openTreasury(page);
+
+      // Slow down the loot POST so the Add request is still in flight
+      // after the user cancels the dialog.
+      await page.route('**/api/loot', async (route) => {
+        if (route.request().method() === 'POST') {
+          await new Promise((r) => setTimeout(r, 2500));
+        }
+        await route.continue();
+      });
+
+      await page.getByTestId('loot-add').click();
+      const addModal = page.getByTestId('modal-add');
+      await addModal.getByTestId('add-name').fill('Slow Item');
+      await addModal.getByTestId('add-description').fill('Added under a slow network.');
+      await addModal.getByTestId('add-holder').selectOption('party');
+      await addModal.getByTestId('add-confirm').click(); // fires the slow POST
+      await addModal.getByTestId('add-cancel').click(); // abandon it before it resolves
+      await expect(addModal).toHaveCount(0);
+
+      // Open a different modal while that request is still out.
+      await page.getByTestId('currency-modify').click();
+      const modal = page.getByTestId('modal-currency');
+      await expect(modal).toBeVisible();
+
+      // This is the reported bug: Save must NOT be disabled here.
+      await expect(modal.getByTestId('currency-confirm')).toBeEnabled();
+
+      await modal.getByTestId('currency-inc-gold').click();
+      await modal.getByTestId('currency-inc-gold').click();
+      await modal.getByTestId('currency-confirm').click();
+
+      // Save must actually work: modal closes, purse updates in the UI.
+      await expect(modal).toHaveCount(0);
+      await expect(page.getByTestId('currency-gold')).toHaveText('449');
+      expect((await (await request.get('/api/currency')).json()).gold).toBe(449);
+
+      // The abandoned Add resolves ~2.5s after being fired. It must not
+      // reopen any modal or otherwise disturb the page — the currency modal
+      // is already closed and saved, and nothing else should appear.
+      await page.waitForTimeout(3000);
+      await expect(page.getByTestId('modal-add')).toHaveCount(0);
+      await expect(page.getByTestId('modal-currency')).toHaveCount(0);
+
+      // The abandoned add's own data still lands server-side — canceling
+      // the dialog doesn't cancel the in-flight request.
+      const stored = await findByName(request, 'Slow Item');
+      expect(stored).toBeTruthy();
+    } finally {
+      const leftover = await findByName(request, 'Slow Item');
+      if (leftover) await request.delete(`/api/loot/${leftover.id}`);
+      await resetPurse(request);
+    }
+  });
+
+  test('a currency edit abandoned in favor of another action does not get silently applied later', async ({
+    page,
+    request,
+  }) => {
+    try {
+      await openTreasury(page);
+
+      await page.route('**/api/currency', async (route) => {
+        if (route.request().method() === 'PUT') {
+          await new Promise((r) => setTimeout(r, 2500));
+        }
+        await route.continue();
+      });
+
+      await page.getByTestId('currency-modify').click();
+      const currencyModal = page.getByTestId('modal-currency');
+      await currencyModal.getByTestId('currency-inc-platinum').click();
+      await currencyModal.getByTestId('currency-confirm').click(); // fires the slow PUT
+      await currencyModal.getByTestId('currency-cancel').click(); // abandon it
+      await expect(currencyModal).toHaveCount(0);
+
+      // Immediately start a totally different action: sell a seeded item.
+      const row = await focusRow(page, "Alchemist's Fire");
+      await row.getByTestId('loot-sell').click();
+      const sellModal = page.getByTestId('modal-sell');
+      await sellModal.getByTestId('sell-amount-gold').fill('50');
+      await expect(sellModal.getByTestId('sell-confirm')).toBeEnabled(); // not blocked
+      await sellModal.getByTestId('sell-confirm').click();
+      await expect(sellModal).toHaveCount(0);
+      await expect(page.getByTestId('currency-gold')).toHaveText('497'); // 447 + 50
+
+      // The abandoned currency edit resolves later; it must not reopen the
+      // currency modal or silently re-apply on top of the sell's result.
+      await page.waitForTimeout(3000);
+      await expect(page.getByTestId('modal-currency')).toHaveCount(0);
+      await expect(page.getByTestId('modal-sell')).toHaveCount(0);
+    } finally {
+      const flasks = await findByName(request, "Alchemist's Fire");
+      if (flasks) await request.patch(`/api/loot/${flasks.id}`, { data: { quantity: 3 } });
+      await resetPurse(request);
+    }
+  });
+});
+
+test.describe('Write round-trip time', () => {
+  /**
+   * Regression guard: currency writes (PUT /api/currency, POST .../sell) were
+   * once found taking up to ~20s to resolve because the sqlite file lived on
+   * a slow bind mount (see connection.js's defaultDbPath doc comment). These
+   * don't assert anything about *why* a write is slow — just that confirming
+   * one closes the modal well inside a generous budget, so a regression
+   * (e.g. the db moving back onto a slow filesystem, or an accidental extra
+   * round trip creeping into the confirm handlers) fails loudly here instead
+   * of only showing up as "the app feels slow" days later.
+   */
+  const BUDGET_MS = 5000;
+
+  test('confirming a currency edit resolves well within budget', async ({ page, request }) => {
+    try {
+      await openTreasury(page);
+      await page.getByTestId('currency-modify').click();
+      const modal = page.getByTestId('modal-currency');
+      await modal.getByTestId('currency-inc-gold').click();
+
+      const start = Date.now();
+      await modal.getByTestId('currency-confirm').click();
+      await expect(modal).toHaveCount(0, { timeout: BUDGET_MS });
+      expect(Date.now() - start).toBeLessThan(BUDGET_MS);
+    } finally {
+      await resetPurse(request);
+    }
+  });
+
+  test('confirming a sale resolves well within budget', async ({ page, request }) => {
+    const flasks = await findByName(request, "Alchemist's Fire"); // qty 3 @ 50 gp
+
+    try {
+      await openTreasury(page);
+      const row = await focusRow(page, "Alchemist's Fire");
+      await row.getByTestId('loot-sell').click();
+      const modal = page.getByTestId('modal-sell');
+      await modal.getByTestId('sell-quantity').fill('1');
+      await modal.getByTestId('sell-amount-gold').fill('50');
+
+      const start = Date.now();
+      await modal.getByTestId('sell-confirm').click();
+      await expect(modal).toHaveCount(0, { timeout: BUDGET_MS });
+      expect(Date.now() - start).toBeLessThan(BUDGET_MS);
+    } finally {
+      const current = await findByName(request, "Alchemist's Fire");
+      if (current) {
+        await request.patch(`/api/loot/${current.id}`, { data: { quantity: flasks.quantity } });
+      }
+      await resetPurse(request);
+    }
+  });
+});

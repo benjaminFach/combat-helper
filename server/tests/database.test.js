@@ -94,7 +94,7 @@ describe('characters CRUD', () => {
     });
     expect(updated.temp_hp).toBe(8);
     expect(updated.current_hit_dice).toBe(6);
-    expect(updated.current_hp).toBe(83); // untouched
+    expect(updated.current_hp).toBe(139); // untouched
   });
 
   it('applies partial updates and ignores unknown keys', () => {
@@ -438,6 +438,37 @@ describe('rests', () => {
     ).toBe(1);
     expect(repos.characterResources.getById(party.lobos.shift.id).current_value).toBe(4);
     expect(repos.characterResources.getById(party.lobos.bloodsmeltPlate.id).current_value).toBe(0);
+  });
+
+  it('a long rest heals the character to full and clears temp HP', () => {
+    repos.characters.update(party.uppy.character.id, { current_hp: 12, temp_hp: 9 });
+
+    repos.characterResources.applyRest(party.uppy.character.id, 'long_rest');
+
+    const uppy = repos.characters.getById(party.uppy.character.id);
+    expect(uppy.current_hp).toBe(uppy.max_hp);
+    expect(uppy.max_hp).toBe(66);
+    expect(uppy.temp_hp).toBe(0);
+  });
+
+  it('a short rest does NOT touch HP or temp HP', () => {
+    repos.characters.update(party.uppy.character.id, { current_hp: 12, temp_hp: 9 });
+
+    repos.characterResources.applyRest(party.uppy.character.id, 'short_rest');
+
+    const uppy = repos.characters.getById(party.uppy.character.id);
+    expect(uppy.current_hp).toBe(12);
+    expect(uppy.temp_hp).toBe(9);
+  });
+
+  it('a single-character long rest heals only that character', () => {
+    repos.characters.update(party.uppy.character.id, { current_hp: 12 });
+    repos.characters.update(party.lobos.character.id, { current_hp: 40 });
+
+    repos.characterResources.applyRest(party.uppy.character.id, 'long_rest');
+
+    expect(repos.characters.getById(party.uppy.character.id).current_hp).toBe(66);
+    expect(repos.characters.getById(party.lobos.character.id).current_hp).toBe(40);
   });
 
   it('rests are a no-op for at-will resources (max_value 0)', () => {

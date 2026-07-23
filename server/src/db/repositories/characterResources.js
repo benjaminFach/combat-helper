@@ -107,6 +107,12 @@ export function createCharacterResourcesRepo(db) {
     if (restType === 'short_rest') {
       db.prepare(partialShortRestSql(true)).run(characterId);
     }
+    if (restType === 'long_rest') {
+      // A long rest heals to full and clears temporary hit points (PHB).
+      db.prepare('UPDATE characters SET current_hp = max_hp, temp_hp = 0 WHERE id = ?').run(
+        characterId
+      );
+    }
     return selectForCharacter.all(characterId).map(hydrate);
   });
 
@@ -124,6 +130,10 @@ export function createCharacterResourcesRepo(db) {
     let partial = 0;
     if (restType === 'short_rest') {
       partial = db.prepare(partialShortRestSql(false)).run().changes;
+    }
+    if (restType === 'long_rest') {
+      // A long rest heals the whole party to full and clears temp HP (PHB).
+      db.prepare('UPDATE characters SET current_hp = max_hp, temp_hp = 0').run();
     }
     return info.changes + partial; // number of resource rows refreshed
   });

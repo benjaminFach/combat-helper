@@ -18,7 +18,15 @@
       "mcp__notion__notion-fetch",
       "mcp__notion__notion-query-data-sources",
       "Bash(node -e \"const d=require\\('/workspaces/combat-helper/data/ostyria-compendium.json'\\); console.log\\(Object.entries\\(d\\).map\\(\\([k,v]\\)=>Array.isArray\\(v\\)?k+': '+v.length:k\\).join\\('\\\\n'\\)\\)\")",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(curl -s -X PUT http://localhost:3001/api/currency -H \"Content-Type: application/json\" -d '{\"gold\":447}')",
+      "Bash(node /tmp/claude-1000/-workspaces-combat-helper/3a74de81-363a-44b8-a55b-c89bf6247811/scratchpad/repro-raw.mjs)",
+      "Bash(node zz-repro-raw.mjs)",
+      "Bash(curl -s \"http://localhost:5173/src/components/TreasuryPanel.vue?t=$\\(date +%s\\)\")",
+      "Bash(curl -s \"http://localhost:5173/src/components/TreasuryPanel.vue?vue&type=script&setup=true&lang.js\")",
+      "Bash(curl -s \"http://localhost:5173/src/components/TreasuryPanel.vue?vue&type=template\")",
+      "Bash(curl -sI \"http://localhost:5173/src/components/TreasuryPanel.vue?vue&type=script&setup=true&lang.js\")",
+      "Bash(timeout 30 node /workspaces/combat-helper/zz-repro-raw.mjs)"
     ]
   }
 }

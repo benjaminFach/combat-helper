@@ -81,8 +81,8 @@ test.describe('Status snapshot', () => {
 
     const uppy = hudCard(page, 'Uppy Beauty');
     // The HP line is one row of editable fields: current / max + temp.
-    await expect(uppy.getByTestId('hud-hp')).toHaveValue('63');
-    await expect(uppy.getByTestId('hud-max-hp')).toHaveValue('63');
+    await expect(uppy.getByTestId('hud-hp')).toHaveValue('66');
+    await expect(uppy.getByTestId('hud-max-hp')).toHaveValue('66');
     await expect(uppy.getByTestId('hud-temp-hp')).toHaveValue('0');
     await expect(uppy.getByTestId('hud-hit-dice')).toHaveText('10');
     // Consumables live in their own section below the reminders.
@@ -158,26 +158,26 @@ test.describe('Status snapshot', () => {
 
 test.describe('Bloodied indicator', () => {
   test('appears strictly below 50% of max HP and clears when healed', async ({ page, request }) => {
-    const { id } = await getCharacter(request, 'Uppy Beauty'); // 63 max HP, half = 31.5
-    await patchCharacter(request, id, { current_hp: 32 });
+    const { id } = await getCharacter(request, 'Uppy Beauty'); // 66 max HP, half = 33
+    await patchCharacter(request, id, { current_hp: 33 });
 
     try {
       await openHud(page);
       const uppy = hudCard(page, 'Uppy Beauty');
-      await expect(uppy.getByTestId('bloodied')).toHaveCount(0); // 32 is not below half
+      await expect(uppy.getByTestId('bloodied')).toHaveCount(0); // 33 is exactly half, not below
 
-      await uppy.getByTestId('hud-hp').fill('31'); // 31 < 31.5
+      await uppy.getByTestId('hud-hp').fill('32'); // 32 < 33
       await uppy.getByTestId('hud-hp').blur(); // commit the edit
       await expect(uppy.getByTestId('bloodied')).toBeVisible();
 
-      await uppy.getByTestId('hud-hp').fill('32'); // back to 32
+      await uppy.getByTestId('hud-hp').fill('33'); // back to half
       await uppy.getByTestId('hud-hp').blur();
       await expect(uppy.getByTestId('bloodied')).toHaveCount(0);
       // Both optimistic PATCHes must land before the restore below runs,
-      // or a late click-PATCH would overwrite it.
-      await expectServerState(request, 'Uppy Beauty', (c) => c.current_hp, 32);
+      // or a late edit-PATCH would overwrite it.
+      await expectServerState(request, 'Uppy Beauty', (c) => c.current_hp, 33);
     } finally {
-      await patchCharacter(request, id, { current_hp: 63 });
+      await patchCharacter(request, id, { current_hp: 66 });
     }
   });
 });
@@ -209,7 +209,7 @@ test.describe('Conditional reminders (Lobos)', () => {
     page,
     request,
   }) => {
-    const { id } = await getCharacter(request, 'Lobos'); // 83 max HP, bloodied below 41.5
+    const { id } = await getCharacter(request, 'Lobos'); // 139 max HP, bloodied below 69.5
 
     try {
       await openHud(page);
@@ -228,7 +228,7 @@ test.describe('Conditional reminders (Lobos)', () => {
       await expect(lobos.getByTestId('bloodied')).toBeVisible();
       await expect(plate).toHaveCount(0);
     } finally {
-      await patchCharacter(request, id, { current_hp: 83, current_hit_dice: 10 });
+      await patchCharacter(request, id, { current_hp: 139, current_hit_dice: 10 });
     }
   });
 });

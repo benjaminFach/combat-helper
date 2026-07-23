@@ -7,11 +7,11 @@
  * throwaway db, e.g. PARTY_DB=party.e2e.db).
  */
 import { existsSync, rmSync } from 'node:fs';
-import { createDb, migrate } from './connection.js';
+import { createDb, defaultDbPath, migrate } from './connection.js';
 import { createRepositories } from './repositories/index.js';
 import { seedParty } from './seed.js';
 
-const file = process.env.PARTY_DB ?? 'party.db';
+const file = process.env.PARTY_DB ?? defaultDbPath();
 
 for (const suffix of ['', '-wal', '-shm']) {
   const path = `${file}${suffix}`;

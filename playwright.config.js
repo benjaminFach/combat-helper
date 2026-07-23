@@ -1,11 +1,19 @@
 import { defineConfig } from '@playwright/test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 /**
  * E2E runs against a fully isolated stack on its own ports (3101/5273) and a
- * throwaway database (server/party.e2e.db, re-seeded on every run) — it never
- * touches the real party.db or collides with `npm run dev` on 3001/5173.
+ * throwaway database (re-seeded on every run) — it never touches the real
+ * party.db or collides with `npm run dev` on 3001/5173.
+ *
+ * The throwaway db lives under the OS temp dir rather than in the repo: this
+ * repo often sits on a 9p/drvfs bind mount, where SQLite's WAL-mode locking
+ * is drastically slower than on a native filesystem (see connection.js's
+ * defaultDbPath doc comment) — same fix applied here so e2e writes aren't
+ * paying that tax either.
  */
-const E2E_DB = 'party.e2e.db';
+const E2E_DB = join(tmpdir(), 'combat-helper-e2e', 'party.e2e.db');
 const SERVER_PORT = 3101;
 const CLIENT_PORT = 5273;
 

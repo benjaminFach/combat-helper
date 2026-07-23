@@ -273,7 +273,7 @@ describe('PATCH /api/characters/:id', () => {
       { current_hp: 9999 }, // above max_hp
       { current_hp: -1 },
       { temp_hp: -3 },
-      { max_hp: 10 }, // below current_hp (63) — CHECK current BETWEEN 0 AND max
+      { max_hp: 10 }, // below current_hp (66) — CHECK current BETWEEN 0 AND max
       { max_hp: 0 },
       { current_hit_dice: 11 }, // above max_hit_dice
     ]) {
@@ -282,8 +282,8 @@ describe('PATCH /api/characters/:id', () => {
       expect(res.body.error).toBeTruthy();
     }
     const uppy = repos.characters.getById(id);
-    expect(uppy.current_hp).toBe(63);
-    expect(uppy.max_hp).toBe(63);
+    expect(uppy.current_hp).toBe(66);
+    expect(uppy.max_hp).toBe(66);
     expect(uppy.temp_hp).toBe(0);
     expect(uppy.current_hit_dice).toBe(10);
   });
@@ -343,6 +343,31 @@ describe('POST /api/rests', () => {
     expect(
       lobos.resources.find((r) => r.resource_name === 'Hybrid Transformation').current_value
     ).toBe(1);
+  });
+
+  it('long rest heals the whole party to full HP and clears temp HP', async () => {
+    repos.characters.update(party.uppy.character.id, { current_hp: 5, temp_hp: 7 });
+    repos.characters.update(party.lobos.character.id, { current_hp: 40, temp_hp: 8 });
+
+    const res = await request(app).post('/api/rests').send({ type: 'long_rest' });
+    expect(res.status).toBe(200);
+
+    // The response payload the dashboard re-renders from already shows it.
+    for (const c of res.body.characters) {
+      expect(c.current_hp, c.name).toBe(c.max_hp);
+      expect(c.temp_hp, c.name).toBe(0);
+    }
+    const lobos = res.body.characters.find((c) => c.name === 'Lobos');
+    expect(lobos.current_hp).toBe(139); // the new max, not the old value
+  });
+
+  it('short rest leaves HP and temp HP alone', async () => {
+    repos.characters.update(party.uppy.character.id, { current_hp: 5, temp_hp: 7 });
+
+    const res = await request(app).post('/api/rests').send({ type: 'short_rest' });
+    const uppy = res.body.characters.find((c) => c.name === 'Uppy Beauty');
+    expect(uppy.current_hp).toBe(5);
+    expect(uppy.temp_hp).toBe(7);
   });
 
   it('reports how many resource rows were refreshed on a long rest', async () => {

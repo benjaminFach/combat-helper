@@ -12,6 +12,16 @@ vi.mock('../src/api.js', () => ({
   updateCurrency: vi.fn(),
 }));
 
+/** A promise we can settle from the test, to freeze the "in flight" moment. */
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 const CHARACTERS = [
   { id: 1, name: 'Uppy Beauty' },
   { id: 2, name: 'Kit Sofia' },
@@ -405,5 +415,99 @@ describe('TreasuryPanel — sell modal', () => {
     await wrapper.find('[data-testid="sell-cancel"]').trigger('click');
     expect(wrapper.find('[data-testid="modal-sell"]').exists()).toBe(false);
     expect(sellLoot).not.toHaveBeenCalled();
+  });
+});
+
+describe('TreasuryPanel — abandoned requests never clobber a different open modal', () => {
+  /**
+   * Regression: `busy` and "close on success" used to be tracked on shared,
+   * single refs across all four modals. Canceling a slow Add (or Sell) before
+   * its request resolved, then opening a different modal, left that modal's
+   * Save/Confirm permanently disabled (stuck on the abandoned request's busy
+   * flag) — and when the abandoned request finally resolved, its unconditional
+   * `modal.value = null` silently closed whatever modal the user had since
+   * opened, discarding their edits with no error shown. Each modal now tracks
+   * its own busy flag and only closes itself if it's still the active modal.
+   */
+  it('canceling a slow Add does not disable Save on a Currency modal opened afterward', async () => {
+    const addDeferred = deferred();
+    createLoot.mockReturnValue(addDeferred.promise);
+    const wrapper = mountPanel();
+
+    await wrapper.find('[data-testid="loot-add"]').trigger('click');
+    await wrapper.find('[data-testid="add-name"]').setValue('Slow Item');
+    await wrapper.find('[data-testid="add-description"]').setValue('desc');
+    await wrapper.find('[data-testid="add-holder"]').setValue('party');
+    await wrapper.find('[data-testid="add-confirm"]').trigger('click'); // fires, still pending
+    await wrapper.find('[data-testid="add-cancel"]').trigger('click'); // abandon it
+    expect(wrapper.find('[data-testid="modal-add"]').exists()).toBe(false);
+
+    // Open a completely different modal while the abandoned Add is still out.
+    await wrapper.find('[data-testid="currency-modify"]').trigger('click');
+    const modal = wrapper.find('[data-testid="modal-currency"]');
+    expect(modal.exists()).toBe(true);
+    expect(wrapper.find('[data-testid="currency-confirm"]').attributes('disabled')).toBeUndefined();
+
+    // Save actually works.
+    updateCurrency.mockResolvedValue({ ...PURSE, gold: 448 });
+    await wrapper.find('[data-testid="currency-inc-gold"]').trigger('click');
+    await wrapper.find('[data-testid="currency-confirm"]').trigger('click');
+    await flushPromises();
+    expect(updateCurrency).toHaveBeenCalledWith(expect.objectContaining({ gold: 448 }));
+    expect(wrapper.find('[data-testid="modal-currency"]').exists()).toBe(false); // closed itself
+
+    // The abandoned Add finally resolves — it must not reopen or reference
+    // any modal, since the Currency modal (which it knows nothing about) has
+    // already come and gone.
+    addDeferred.resolve({ id: 99, name: 'Slow Item' });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="modal-add"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="modal-currency"]').exists()).toBe(false);
+    // Its data still lands — canceling the dialog doesn't cancel the request.
+    expect(wrapper.emitted('loot-created')[0][0]).toEqual({ id: 99, name: 'Slow Item' });
+  });
+
+  it("an abandoned Add's late resolution does not close a Currency modal that is still open", async () => {
+    const addDeferred = deferred();
+    createLoot.mockReturnValue(addDeferred.promise);
+    const wrapper = mountPanel();
+
+    await wrapper.find('[data-testid="loot-add"]').trigger('click');
+    await wrapper.find('[data-testid="add-name"]').setValue('Slow Item');
+    await wrapper.find('[data-testid="add-description"]').setValue('desc');
+    await wrapper.find('[data-testid="add-holder"]').setValue('party');
+    await wrapper.find('[data-testid="add-confirm"]').trigger('click');
+    await wrapper.find('[data-testid="add-cancel"]').trigger('click');
+
+    await wrapper.find('[data-testid="currency-modify"]').trigger('click');
+    expect(wrapper.find('[data-testid="modal-currency"]').exists()).toBe(true);
+
+    // The stale Add resolves while the user is still editing Currency —
+    // untouched, unsaved. It must stay open.
+    addDeferred.resolve({ id: 99, name: 'Slow Item' });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="modal-currency"]').exists()).toBe(true);
+    expect(updateCurrency).not.toHaveBeenCalled();
+  });
+
+  it('the same protection applies to an abandoned Sell colliding with a Remove modal', async () => {
+    const sellDeferred = deferred();
+    sellLoot.mockReturnValue(sellDeferred.promise);
+    const wrapper = mountPanel([flasks(), flasks({ id: 12, name: 'Second Item' })]);
+
+    await wrapper.findAll('[data-testid="loot-sell"]')[0].trigger('click');
+    await wrapper.find('[data-testid="sell-amount-gold"]').setValue('10');
+    await wrapper.find('[data-testid="sell-confirm"]').trigger('click'); // pending
+    await wrapper.find('[data-testid="sell-cancel"]').trigger('click'); // abandon it
+
+    await wrapper.findAll('[data-testid="loot-remove"]')[1].trigger('click');
+    const removeModal = wrapper.find('[data-testid="modal-remove"]');
+    expect(removeModal.exists()).toBe(true);
+    expect(wrapper.find('[data-testid="remove-confirm"]').attributes('disabled')).toBeUndefined();
+
+    sellDeferred.resolve({ loot: null, currency: PURSE, sold: { quantity: 1, proceeds: { gold: 10 } } });
+    await flushPromises();
+    expect(wrapper.find('[data-testid="modal-remove"]').exists()).toBe(true); // untouched
+    expect(wrapper.emitted('loot-removed')).toEqual([[11]]); // the sale's own removal still fired
   });
 });

@@ -229,7 +229,7 @@ export function seedParty(repos) {
     class: 'Cleric',
     subclass: 'Twilight Domain',
     level: 10,
-    max_hp: 63,
+    max_hp: 66,
     notes: 'Aasimar. 300ft darkvision; Twilight Sanctuary anchors the party.',
   });
 
@@ -238,7 +238,7 @@ export function seedParty(repos) {
     class: 'Cleric',
     subclass: 'Tempest Domain',
     level: 10,
-    max_hp: 73,
+    max_hp: 83,
     notes: 'Elf. Destructive Wrath maximizes Lightning/Thunder damage.',
   });
 
@@ -247,7 +247,7 @@ export function seedParty(repos) {
     class: 'Blood Hunter',
     subclass: 'Order of the Lycan',
     level: 10,
-    max_hp: 83,
+    max_hp: 139,
     notes: 'Shifter. Must roll to keep control of Hybrid Transformation below half HP.',
   });
 
@@ -255,7 +255,7 @@ export function seedParty(repos) {
     name: 'Malachai',
     class: 'Monk',
     level: 10,
-    max_hp: 69,
+    max_hp: 73,
     notes: 'Genasi. Molten Shell temp HP burns melee attackers for 5 fire damage.',
   });
 
@@ -263,7 +263,7 @@ export function seedParty(repos) {
     name: 'Orlin',
     class: 'Artificer',
     level: 10,
-    max_hp: 68,
+    max_hp: 96,
     notes: "Flash of Genius reaction (+5 INT) rescues allies' saving throws.",
   });
 

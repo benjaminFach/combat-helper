@@ -18,9 +18,22 @@ const emit = defineEmits([
   'error',
 ]);
 
-/** One modal at a time: null | {type:'add'} | {type:'remove'|'sell', item}. */
+/**
+ * One modal at a time: null | {type:'add', busy} | {type:'remove'|'sell', item, busy} | ...
+ *
+ * `busy` lives ON the modal object rather than in a shared ref. Each open()
+ * call creates a fresh object, so a stale in-flight request from a modal the
+ * user already dismissed can never disable — or silently close — whatever
+ * DIFFERENT modal is open now. Every confirm() captures `session = modal.value`
+ * up front and only applies "close on success" if `modal.value === session`,
+ * i.e. nothing else has been opened in the meantime. Regression: previously
+ * `busy` was one global ref, so canceling a slow Add and then opening Modify
+ * Currency left Save permanently disabled (stuck busy=true from the abandoned
+ * request) — and when that request finally resolved, its unconditional
+ * `modal.value = null` closed whichever modal happened to be open by then,
+ * discarding unsaved edits with no error shown.
+ */
 const modal = ref(null);
-const busy = ref(false);
 
 /* ---------------------------------------------------------------- add --- */
 
@@ -51,12 +64,13 @@ const addErrors = computed(() => {
 
 function openAdd() {
   Object.assign(addForm, blankAddForm());
-  modal.value = { type: 'add' };
+  modal.value = { type: 'add', busy: false };
 }
 
 async function confirmAdd() {
-  if (addErrors.value.length > 0 || busy.value) return;
-  busy.value = true;
+  const session = modal.value;
+  if (addErrors.value.length > 0 || session.busy) return;
+  session.busy = true;
   try {
     const created = await createLoot({
       name: addForm.name.trim(),
@@ -66,11 +80,11 @@ async function confirmAdd() {
       quantity: parseIntField(addForm.quantity, 1),
     });
     emit('loot-created', created);
-    modal.value = null;
+    if (modal.value === session) modal.value = null; // still the active modal — close it
   } catch (err) {
     emit('error', `Add item: ${err.message}`); // modal stays open for a retry
   } finally {
-    busy.value = false;
+    session.busy = false;
   }
 }
 
@@ -83,7 +97,7 @@ function openCurrency() {
   for (const denom of DENOMINATIONS) {
     currencyForm[denom.key] = String(props.currency[denom.key]);
   }
-  modal.value = { type: 'currency' };
+  modal.value = { type: 'currency', busy: false };
 }
 
 /** Step one denomination by ±1; never below 0 (the − button also disables there). */
@@ -104,8 +118,9 @@ const currencyErrors = computed(() => {
 });
 
 async function confirmCurrency() {
-  if (currencyErrors.value.length > 0 || busy.value) return;
-  busy.value = true;
+  const session = modal.value;
+  if (currencyErrors.value.length > 0 || session.busy) return;
+  session.busy = true;
   try {
     const updated = await updateCurrency(
       Object.fromEntries(
@@ -113,27 +128,28 @@ async function confirmCurrency() {
       )
     );
     emit('currency-updated', updated);
-    modal.value = null;
+    if (modal.value === session) modal.value = null;
   } catch (err) {
     emit('error', `Modify currency: ${err.message}`);
   } finally {
-    busy.value = false;
+    session.busy = false;
   }
 }
 
 /* ------------------------------------------------------------- remove --- */
 
 async function confirmRemove() {
-  if (busy.value) return;
-  busy.value = true;
+  const session = modal.value;
+  if (session.busy) return;
+  session.busy = true;
   try {
-    await deleteLoot(modal.value.item.id);
-    emit('loot-removed', modal.value.item.id);
-    modal.value = null;
+    await deleteLoot(session.item.id);
+    emit('loot-removed', session.item.id);
+    if (modal.value === session) modal.value = null;
   } catch (err) {
     emit('error', `Remove item: ${err.message}`);
   } finally {
-    busy.value = false;
+    session.busy = false;
   }
 }
 
@@ -145,7 +161,7 @@ const sellForm = reactive({ quantity: '1', proceeds: blankProceeds() });
 
 function openSell(item) {
   Object.assign(sellForm, { quantity: '1', proceeds: blankProceeds() });
-  modal.value = { type: 'sell', item };
+  modal.value = { type: 'sell', item, busy: false };
 }
 
 /** A proceeds field left blank means 0 of that coin. */
@@ -167,9 +183,10 @@ const sellErrors = computed(() => {
 });
 
 async function confirmSell() {
-  if (sellErrors.value.length > 0 || busy.value) return;
-  busy.value = true;
-  const { item } = modal.value;
+  const session = modal.value;
+  if (sellErrors.value.length > 0 || session.busy) return;
+  session.busy = true;
+  const { item } = session;
   try {
     const result = await sellLoot(item.id, {
       quantity: parseIntField(sellForm.quantity, 1),
@@ -180,11 +197,11 @@ async function confirmSell() {
     if (result.loot === null) emit('loot-removed', item.id);
     else emit('loot-updated', result.loot);
     emit('currency-updated', result.currency);
-    modal.value = null;
+    if (modal.value === session) modal.value = null;
   } catch (err) {
     emit('error', `Sell item: ${err.message}`);
   } finally {
-    busy.value = false;
+    session.busy = false;
   }
 }
 </script>
@@ -227,7 +244,7 @@ async function confirmSell() {
       :view="view"
       @add="openAdd"
       @sell="openSell($event)"
-      @remove="modal = { type: 'remove', item: $event }"
+      @remove="modal = { type: 'remove', item: $event, busy: false }"
     />
 
     <!-- Modal overlay: one dialog at a time, Cancel always available -->
@@ -284,7 +301,7 @@ async function confirmSell() {
             type="button"
             data-testid="add-confirm"
             class="modal-btn border-ember/60 text-ember hover:border-ember"
-            :disabled="addErrors.length > 0 || busy"
+            :disabled="addErrors.length > 0 || modal.busy"
             @click="confirmAdd"
           >
             Add to treasury
@@ -357,7 +374,7 @@ async function confirmSell() {
             type="button"
             data-testid="currency-confirm"
             class="modal-btn border-ember/60 text-ember hover:border-ember"
-            :disabled="currencyErrors.length > 0 || busy"
+            :disabled="currencyErrors.length > 0 || modal.busy"
             @click="confirmCurrency"
           >
             Save
@@ -387,7 +404,7 @@ async function confirmSell() {
             type="button"
             data-testid="remove-confirm"
             class="modal-btn border-blood/60 text-blood hover:border-blood"
-            :disabled="busy"
+            :disabled="modal.busy"
             @click="confirmRemove"
           >
             Remove
@@ -457,7 +474,7 @@ async function confirmSell() {
             type="button"
             data-testid="sell-confirm"
             class="modal-btn border-tonic/60 text-tonic hover:border-tonic"
-            :disabled="sellErrors.length > 0 || busy"
+            :disabled="sellErrors.length > 0 || modal.busy"
             @click="confirmSell"
           >
             Sell

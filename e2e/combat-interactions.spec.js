@@ -174,7 +174,7 @@ test.describe('Twilight Sanctuary activation does not lock the HUD card', () => 
         data: { action: 'set_active', active: false },
       });
       await request.patch(`/api/characters/${before.id}`, {
-        data: { current_hp: 63, temp_hp: 0 },
+        data: { current_hp: 66, temp_hp: 0 },
       });
     }
   });
